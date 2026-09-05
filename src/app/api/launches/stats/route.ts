@@ -64,6 +64,11 @@ export async function POST(req: Request) {
         if (input.version !== "v1" && input.curve && isAddress(input.curve)) {
           s = await getTokenStatsV2(input.token as Address, input.curve as Address, ethUsd);
         }
+        // Fallback to DexScreener when the curve gives nothing (e.g. graduated
+        // tokens, or tokens not launched through Pons like the official $CREO).
+        if (s.marketCapUsd == null && s.volumeUsd == null) {
+          s = await dexStats(input.token);
+        }
         stats[input.token] = s;
         if (kv) {
           await kv
@@ -75,4 +80,28 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ stats });
+}
+
+/** Market cap + 24h volume for any token from DexScreener (deepest pair). */
+async function dexStats(token: string): Promise<TokenStats> {
+  try {
+    const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${token}`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(7000),
+      headers: { accept: "application/json" },
+    });
+    if (!res.ok) return { marketCapUsd: null, volumeUsd: null };
+    const data = (await res.json()) as {
+      pairs?: Array<{ marketCap?: number; fdv?: number; volume?: { h24?: number }; liquidity?: { usd?: number } }>;
+    };
+    const pairs = Array.isArray(data.pairs) ? data.pairs : [];
+    if (pairs.length === 0) return { marketCapUsd: null, volumeUsd: null };
+    const best = pairs.slice().sort((a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0))[0];
+    return {
+      marketCapUsd: best.marketCap ?? best.fdv ?? null,
+      volumeUsd: best.volume?.h24 ?? null,
+    };
+  } catch {
+    return { marketCapUsd: null, volumeUsd: null };
+  }
 }
