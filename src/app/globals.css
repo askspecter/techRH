@@ -1,0 +1,201 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────
+   CREO — light "Sunset" theme (teal→gold→orange→red gradient,
+   sampled from the CREO logo, glass cards)
+   ───────────────────────────────────────────────────────────── */
+:root {
+  --font-display: "Space Grotesk", "Inter", "Segoe UI", system-ui, -apple-system, "DejaVu Sans", Arial, sans-serif;
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, Roboto, "DejaVu Sans", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "DejaVu Sans Mono", monospace;
+  --font-logo: "Orbitron", "Space Grotesk", var(--font-display);
+  color-scheme: light;
+}
+
+/* Techno wordmark for the CREO logotype */
+.wordmark {
+  font-family: var(--font-logo);
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+  }
+  body {
+    @apply text-zinc-800 antialiased;
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    background-color: #fff7ee;
+    color: #2a1608;
+    min-height: 100dvh;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  ::selection {
+    background: rgba(224, 83, 42, 0.22);
+    color: #2a1608;
+  }
+  h1, h2, h3 {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.02em;
+    color: #201206;
+  }
+  input, textarea, select {
+    font-family: inherit;
+  }
+}
+
+/* Sunset backdrop: cool teal glow (top of the logo) fading into a warm gold and
+   a red-orange horizon (bottom of the logo), fixed. */
+.cinema-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(52rem 40rem at 8% -5%, #d3e7e8, transparent 55%),
+    radial-gradient(56rem 46rem at 96% 8%, #ffdca0, transparent 52%),
+    radial-gradient(60rem 52rem at 55% 122%, rgba(224, 83, 42, 0.85), transparent 55%),
+    #fff7ee;
+}
+/* Grain is distracting on a light theme — keep it off. */
+.grain {
+  display: none;
+}
+
+/* Signature gradient text + accents — gold → orange → red */
+.grad-text {
+  background: linear-gradient(100deg, #f2b134 0%, #ec7a2c 52%, #dd3b22 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.grad-rule {
+  background: linear-gradient(90deg, transparent, rgba(224, 83, 42, 0.5), transparent);
+}
+
+@layer components {
+  /* Frosted glass card */
+  .card {
+    @apply rounded-2xl border;
+    border-color: rgba(0, 0, 0, 0.06);
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 30px 70px -40px rgba(224, 83, 42, 0.45);
+  }
+  .card-hover {
+    @apply transition duration-300;
+  }
+  .card-hover:hover {
+    @apply -translate-y-1;
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(0, 0, 0, 0.12);
+  }
+
+  /* Primary = sunset gradient */
+  .btn-brand {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white transition duration-200 disabled:cursor-not-allowed disabled:opacity-40;
+    background: linear-gradient(100deg, #f2b134, #ec7a2c 52%, #dd3b22);
+    box-shadow: 0 12px 30px -10px rgba(224, 83, 42, 0.55);
+  }
+  .btn-brand:hover:not(:disabled) {
+    filter: brightness(1.05);
+    box-shadow: 0 16px 40px -10px rgba(224, 83, 42, 0.7);
+    transform: translateY(-1px);
+  }
+
+  /* Secondary = warm dark solid (Sunset-style) */
+  .btn-dark {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white transition duration-200 disabled:cursor-not-allowed disabled:opacity-40;
+    background: #2a1608;
+  }
+  .btn-dark:hover:not(:disabled) {
+    transform: translateY(-1px);
+    background: #3a2010;
+  }
+
+  /* Ghost = light outline */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-zinc-700 transition duration-200 disabled:cursor-not-allowed disabled:opacity-40;
+    border: 1px solid rgba(0, 0, 0, 0.10);
+    background: rgba(255, 255, 255, 0.7);
+  }
+  .btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(0, 0, 0, 0.2);
+    color: #201206;
+  }
+
+  /* Chip / pill */
+  .chip {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium text-zinc-600;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.6);
+  }
+  .chip-accent {
+    @apply text-pink;
+    border-color: rgba(224, 83, 42, 0.35);
+    background: rgba(224, 83, 42, 0.08);
+  }
+
+  /* Form field */
+  .field {
+    @apply w-full rounded-xl px-4 py-3 text-sm outline-none transition placeholder:text-zinc-400;
+    color: #201206;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.75);
+  }
+  .field:focus {
+    border-color: rgba(224, 83, 42, 0.6);
+    box-shadow: 0 0 0 3px rgba(224, 83, 42, 0.14);
+  }
+
+  /* Section eyebrow label */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500;
+  }
+
+  /* Step number badge */
+  .step-badge {
+    @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-lg font-mono text-sm font-bold text-pink;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.7);
+  }
+}
+
+/* Marquee row */
+.marquee-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: marquee 32s linear infinite;
+}
+/* The track renders the ticker list twice, so translating by -50% loops it
+   seamlessly. These keyframes are defined here (not only in tailwind.config)
+   because the `animate-marquee` utility is never used, so Tailwind would
+   otherwise not emit them and the row would sit still. */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.marquee-track:hover { animation-play-state: paused; }
+.marquee-mask {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+/* Thin scrollbar inside dropdowns */
+.thin-scroll::-webkit-scrollbar { width: 8px; }
+.thin-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 8px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
+  html { scroll-behavior: auto; }
+  /* The ticker marquee is core to the page's feel — keep it running. */
+  .marquee-track { animation: marquee 32s linear infinite !important; }
+}
