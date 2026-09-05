@@ -1,7 +1,6 @@
 import { parseEther, toHex, zeroAddress, type Address } from "viem";
 import { v2FactoryAbi, v2LaunchAndBuyAbi } from "./abisV2";
 import { PONS_V2, REGISTRY, V2_GRADUATION_THRESHOLD_ETH } from "./registry";
-import { canLaunch, launchFee, previewLaunchEconomics } from "./readerV2";
 import type { LaunchStrategy } from "./strategy";
 import { V2_QUOTE_ASSETS, type LaunchInput, type LaunchPlan, type VersionInfo } from "./types";
 
@@ -38,12 +37,32 @@ export class PonsV2Adapter implements LaunchStrategy {
 
     const warnings: string[] = [];
 
+    // Pre-launch reads run on the SERVER (see /api/v2/prepare), not via the
+    // browser's public client, so the deploy flow does not break when the public
+    // RPC rejects browser calls (CORS / "Load failed"). Returns the pinned
+    // economics hash, the live launch fee, and the (non-blocking) whitelist gate.
+    const prep = await fetch(
+      `/api/v2/prepare?configId=${launchConfigId}&pairToken=${pairToken}&account=${account}`,
+      { cache: "no-store" }
+    )
+      .then((r) => r.json())
+      .catch(() => null);
+
+    if (!prep || prep.error || !prep.expectedEconomics) {
+      throw new Error(
+        "Couldn't read launch economics from the network right now. Please try again in a moment."
+      );
+    }
+
+    const expectedEconomics = prep.expectedEconomics as `0x${string}`;
+    const fee = BigInt(prep.launchFee ?? "0");
+    const allowed = prep.canLaunch as boolean | null;
+
     // NON-BLOCKING whitelist check. Pons v2 launches are whitelist-gated
     // ON-CHAIN: if the wallet isn't allowlisted, launchToken() reverts no matter
     // how correct the calldata is - the frontend cannot bypass that. We never
     // block here (deploy is always attempted, per request), but we surface a
     // clear reason up front so a revert isn't a mystery.
-    const allowed = await canLaunch(account).catch(() => null);
     if (allowed === false) {
       warnings.push(
         "This wallet is not on the Pons v2 whitelist, so the launch will revert on-chain " +
@@ -51,12 +70,6 @@ export class PonsV2Adapter implements LaunchStrategy {
           "launched before, or launch with v1 (open, no whitelist)."
       );
     }
-
-    // Pin the economics we were quoted + read the live launch fee.
-    const [expectedEconomics, fee] = await Promise.all([
-      previewLaunchEconomics(launchConfigId, pairToken),
-      launchFee(),
-    ]);
 
     // CREATE2 salt - fresh random is correct for an ordinary launch.
     const salt = toHex(crypto.getRandomValues(new Uint8Array(32)));
