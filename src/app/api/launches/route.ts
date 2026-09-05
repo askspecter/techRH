@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { isAddress, toEventSelector, verifyMessage, type Address } from "viem";
 import { getKv } from "@/lib/kv";
 import { indexV2Launches } from "@/lib/pons/readerV2";
-import { PONS_V2 } from "@/lib/pons/registry";
+import { PONS_V1, PONS_V2 } from "@/lib/pons/registry";
 import { explorerUrl } from "@/lib/chain";
 
 export const runtime = "nodejs";
@@ -138,10 +138,26 @@ function topicToAddress(t?: string): string {
   return t && t.length >= 42 ? `0x${t.slice(-40)}` : "";
 }
 
-// Addresses that can emit the v2 TokenLaunched event: the factory (direct
-// launchToken) and the launch-and-buy router / deployer (dev-buy launches route
-// through these, so the event may be emitted there instead of the factory).
-const V2_LAUNCH_EMITTERS = [PONS_V2.factory, PONS_V2.launchAndBuy, PONS_V2.launchDeployer];
+// v1-style TokenLaunched topic0 (10-arg event, same as ponsfamily.com). In both
+// the v1 and v2 events the launched token is the first indexed arg (topics[1]),
+// so matching either topic and reading topics[1] catches every launch shape.
+const V1_LAUNCH_TOPIC = PONS_V1.topics.tokenLaunched.toLowerCase();
+
+function isLaunchTopic(t?: string): boolean {
+  if (!t) return false;
+  const s = t.toLowerCase();
+  return s === V2_LAUNCH_TOPIC.toLowerCase() || s === V1_LAUNCH_TOPIC;
+}
+
+// Every address that can emit a TokenLaunched event: the v2 factory + router +
+// deployer (dev-buy launches route through these) and the v1 factories.
+const V2_LAUNCH_EMITTERS = [
+  PONS_V2.factory,
+  PONS_V2.launchAndBuy,
+  PONS_V2.launchDeployer,
+  PONS_V1.activeFactory,
+  PONS_V1.legacyFactory,
+];
 
 /**
  * Resolve the launched token (and curve) from a transaction's logs via
@@ -159,10 +175,11 @@ async function resolveLaunchFromTx(txHash: string): Promise<{ token: string; cur
   const items = Array.isArray(data.items) ? data.items : [];
   for (const it of items) {
     const topics = it.topics ?? [];
-    if (!topics[0] || topics[0].toLowerCase() !== V2_LAUNCH_TOPIC.toLowerCase()) continue;
+    if (!isLaunchTopic(topics[0])) continue;
     const token = topicToAddress(topics[1]);
     if (!isAddress(token)) continue;
-    const curve = topicToAddress(topics[2]);
+    const isV2 = (topics[0] ?? "").toLowerCase() === V2_LAUNCH_TOPIC.toLowerCase();
+    const curve = isV2 ? topicToAddress(topics[2]) : "";
     return { token, curve: isAddress(curve) ? curve : undefined };
   }
   return null;
@@ -175,13 +192,17 @@ function parseLaunchLogs(
   const out: RawLaunch[] = [];
   for (const it of items) {
     const topics = it.topics ?? [];
-    if (!topics[0] || topics[0].toLowerCase() !== V2_LAUNCH_TOPIC.toLowerCase()) continue;
+    if (!isLaunchTopic(topics[0])) continue;
     const token = topicToAddress(topics[1]);
     if (!isAddress(token)) continue;
+    // topics[2] is the curve only in the v2 event; in the v1 event it is the
+    // deployer, so only read a curve when the v2 topic matched.
+    const isV2 = (topics[0] ?? "").toLowerCase() === V2_LAUNCH_TOPIC.toLowerCase();
+    const maybeCurve = isV2 ? topicToAddress(topics[2]) : "";
     out.push({
       token: token as Address,
-      curve: (isAddress(topicToAddress(topics[2])) ? topicToAddress(topics[2]) : undefined) as Address | undefined,
-      deployer: topicToAddress(topics[3]) as Address,
+      curve: (isAddress(maybeCurve) ? maybeCurve : undefined) as Address | undefined,
+      deployer: topicToAddress(topics[isV2 ? 3 : 2]) as Address,
       txHash: (it.transaction_hash ?? "0x") as `0x${string}`,
       blockNumber: BigInt(it.block_number ?? 0),
       tsMs: it.block_timestamp ? Date.parse(it.block_timestamp) : 0,
@@ -245,7 +266,8 @@ async function blockscoutTokenMeta(
   }
 }
 
-const ONCHAIN_CACHE_KEY = "creo:onchain-feed";
+const ONCHAIN_CACHE_KEY = "creo:onchain-feed"; // short TTL fast path
+const ONCHAIN_LASTGOOD_KEY = "creo:onchain-feed:lastgood"; // never expires
 
 /**
  * Build feed records from recent on-chain Pons v2 launches (Blockscout logs,
@@ -292,8 +314,20 @@ async function onchainLaunches(limit: number): Promise<LaunchRecord[]> {
   });
 
   const sorted = recs.sort((a, b) => b.createdAt - a.createdAt).slice(0, limit);
-  if (kv && sorted.length > 0) {
-    await kv.set(ONCHAIN_CACHE_KEY, sorted, { ex: 45 }).catch(() => {});
+
+  if (sorted.length > 0) {
+    if (kv) {
+      await kv.set(ONCHAIN_CACHE_KEY, sorted, { ex: 45 }).catch(() => {});
+      await kv.set(ONCHAIN_LASTGOOD_KEY, sorted).catch(() => {}); // never let the feed empty out
+    }
+    return sorted;
+  }
+
+  // Fresh build came back empty (RPC/explorer hiccup): serve the last good feed
+  // so tokens never blink out on a refresh.
+  if (kv) {
+    const lastGood = await kv.get<LaunchRecord[]>(ONCHAIN_LASTGOOD_KEY).catch(() => null);
+    if (lastGood && Array.isArray(lastGood) && lastGood.length > 0) return lastGood.slice(0, limit);
   }
   return sorted;
 }
