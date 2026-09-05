@@ -5,7 +5,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/upload — storage diagnostic (safe: reports env var NAMES only, never
+ * GET /api/upload - storage diagnostic (safe: reports env var NAMES only, never
  * values). Use this to see why image storage isn't detected: it lists which
  * KV/Redis/Upstash env vars the deployment can actually see and whether the
  * client initialises.
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
   // than the decoded bytes; the client already compresses to fit).
   if (dataUrl.length > 950_000) {
     return NextResponse.json(
-      { error: "Image too large after compression — try a smaller or simpler image." },
+      { error: "Image too large after compression - try a smaller or simpler image." },
       { status: 413 }
     );
   }

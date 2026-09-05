@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAccount, useDisconnect } from "wagmi";
 import { SITE } from "@/lib/site";
 
-// Acceptance is stored per wallet address (like Pons — "using pons with this
+// Acceptance is stored per wallet address (like Pons - "using pons with this
 // wallet"), so the gate reappears for each new wallet. v2 key: it intentionally
 // supersedes the old browser-wide v1 flag, so the gate shows again for everyone.
 const keyFor = (address: string) => `creo:accepted:v2:${address.toLowerCase()}`;

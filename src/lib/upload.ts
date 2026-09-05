@@ -8,7 +8,7 @@
 // Stored images live as base64 in KV (Upstash), whose REST request cap is ~1MB.
 // Keep the encoded data URL comfortably under that so uploads never fail on size.
 const MAX_EDGE = 512;
-const TARGET_CHARS = 600_000; // ~450KB of image bytes — safely under the KV limit
+const TARGET_CHARS = 600_000; // ~450KB of image bytes - safely under the KV limit
 
 function loadImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -56,7 +56,7 @@ async function toDownscaledDataUrl(file: File): Promise<string> {
       if (jpg.length <= TARGET_CHARS) return jpg;
     }
   }
-  // Nothing fit the target (extreme source) — return the smallest we produced.
+  // Nothing fit the target (extreme source) - return the smallest we produced.
   return smallest || (await Promise.resolve(drawAt(img, 256).toDataURL("image/jpeg", 0.4)));
 }
 
@@ -80,13 +80,13 @@ export async function uploadLogo(file: File): Promise<string> {
 }
 
 /**
- * On-chain token metadata (logo) must be a SHORT reference — a data: URI or an
+ * On-chain token metadata (logo) must be a SHORT reference - a data: URI or an
  * over-long string makes the launch revert with MetadataTooLong(). If the given
  * logo is a data URI or too long, upload it and return a short absolute URL;
- * otherwise return it unchanged. Never throws — falls back to a safe empty
+ * otherwise return it unchanged. Never throws - falls back to a safe empty
  * string if it can't be shortened (a launch with no logo still succeeds).
  */
-const MAX_ONCHAIN_LOGO = 200; // chars — well under the contract's metadata cap
+const MAX_ONCHAIN_LOGO = 200; // chars - well under the contract's metadata cap
 export async function toOnchainLogo(logo: string | undefined | null): Promise<string> {
   const v = (logo ?? "").trim();
   if (!v) return "";
@@ -96,6 +96,6 @@ export async function toOnchainLogo(logo: string | undefined | null): Promise<st
     const short = await uploadDataUrl(v);
     return short.length <= MAX_ONCHAIN_LOGO ? short : "";
   } catch {
-    return ""; // storage unavailable — launch without an on-chain logo rather than revert
+    return ""; // storage unavailable - launch without an on-chain logo rather than revert
   }
 }

@@ -21,7 +21,7 @@ const MAX_TOKENS = 24;
  *
  * On-chain reads are cached per token in KV for a short window so the explorer
  * grid stays cheap. Only v2 (bonding-curve) tokens are computed; everything else
- * (and any read failure) returns nulls, which the UI renders as "—".
+ * (and any read failure) returns nulls, which the UI renders as "-".
  */
 export async function POST(req: Request) {
   let body: { tokens?: StatsInput[] };

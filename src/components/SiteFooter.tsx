@@ -32,7 +32,7 @@ export function SiteFooter() {
           transaction. {SITE.name} does not custody assets.
         </p>
 
-        {/* Links — one compact row */}
+        {/* Links - one compact row */}
         <nav className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
           {links.map((l) => (
             <Link key={l.href} href={l.href} className="text-zinc-600 transition hover:text-zinc-900">

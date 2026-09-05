@@ -26,7 +26,7 @@ export default function Error({
           Something went wrong
         </h1>
         <p className="mt-3 text-sm text-zinc-600">
-          This page hit an unexpected error. It&apos;s usually temporary — try
+          This page hit an unexpected error. It&apos;s usually temporary - try
           again.
         </p>
         <button onClick={() => reset()} className="btn-brand mt-6 inline-flex">

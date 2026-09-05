@@ -1,5 +1,5 @@
 /**
- * Official token check badge — gold/yellow, like a verified org mark. Scales
+ * Official token check badge - gold/yellow, like a verified org mark. Scales
  * with the surrounding text (≈1em) so it sits inline next to a token name.
  */
 export function VerifiedBadge({ className }: { className?: string }) {

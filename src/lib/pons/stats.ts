@@ -9,7 +9,7 @@ import { v2CurveBuyEvent, v2CurveSellEvent, v2TokenAbi } from "./abisV2";
  *  - volumeUsd:    cumulative quote traded through the curve (buys + sells).
  *
  * Both are best-effort and USD is only available when the quote asset is native
- * ETH; anything unavailable comes back as null so the UI shows "—".
+ * ETH; anything unavailable comes back as null so the UI shows "-".
  */
 export interface TokenStats {
   marketCapUsd: number | null;

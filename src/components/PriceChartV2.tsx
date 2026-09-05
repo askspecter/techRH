@@ -51,7 +51,7 @@ function Chart({ points, quoteSymbol }: { points: Point[]; quoteSymbol: string }
   const H = 176;
   const pad = 10;
 
-  // Always draw a visible line. With 0–1 trades there's no slope yet, so draw a
+  // Always draw a visible line. With 0-1 trades there's no slope yet, so draw a
   // flat baseline across the middle (like Pons) instead of hiding the chart.
   const min = vals.length ? Math.min(...vals) : 0;
   const max = vals.length ? Math.max(...vals) : 1;
@@ -99,7 +99,7 @@ function Chart({ points, quoteSymbol }: { points: Point[]; quoteSymbol: string }
         <path d={line} fill="none" stroke="#e0532a" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
       </svg>
       <p className="mt-1 text-[10px] text-zinc-500">
-        {flat ? "Awaiting first trades — line updates as the curve trades." : `${points.length} curve trades · from on-chain events`}
+        {flat ? "Awaiting first trades - line updates as the curve trades." : `${points.length} curve trades · from on-chain events`}
       </p>
     </div>
   );

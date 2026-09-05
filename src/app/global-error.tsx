@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 /**
  * Root error boundary. Catches client-side exceptions thrown anywhere in the
- * tree — including the wallet providers in the root layout — so a single failing
+ * tree - including the wallet providers in the root layout - so a single failing
  * component can never blank the whole site with Next's bare white "Application
  * error: a client-side exception has occurred" screen. It replaces the layout
  * entirely, so it must render its own <html>/<body>.
@@ -58,7 +58,7 @@ export default function GlobalError({
             Something went wrong
           </h1>
           <p style={{ marginTop: "0.75rem", fontSize: "0.9rem", color: "#52525b" }}>
-            The app hit an unexpected error. This is usually temporary — try
+            The app hit an unexpected error. This is usually temporary - try
             reloading.
           </p>
           <pre

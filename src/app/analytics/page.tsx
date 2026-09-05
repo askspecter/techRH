@@ -194,10 +194,10 @@ function fmtEastern(ms: number): string {
   });
 }
 function fmtCount(n: number | null | undefined): string {
-  if (n === null || n === undefined) return "—";
+  if (n === null || n === undefined) return "-";
   return Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(n);
 }
 function fmtUsd(n: number | null | undefined): string {
-  if (n === null || n === undefined) return "—";
+  if (n === null || n === undefined) return "-";
   return "$" + Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 2 }).format(n);
 }

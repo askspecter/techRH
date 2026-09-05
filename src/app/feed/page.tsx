@@ -59,7 +59,7 @@ export default function FeedPage() {
         <div className="card mt-8 p-10 text-center">
           <p className="text-lg font-semibold text-zinc-900">No launches yet.</p>
           <p className="mt-2 text-sm text-zinc-600">
-            Be the first — open the studio and ship a token.
+            Be the first - open the studio and ship a token.
           </p>
           <a href="/create" className="btn-brand mt-6 inline-flex">Launch a token →</a>
         </div>

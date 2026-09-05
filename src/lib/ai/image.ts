@@ -2,7 +2,7 @@ import { generateFallbackLogo } from "./avatar";
 
 /**
  * AI token art through the **Bankr LLM Gateway** (same key/base as text
- * generation — Bankr routes across many models). Two styles:
+ * generation - Bankr routes across many models). Two styles:
  *  - "icon"  → a clean, iconic token logo.
  *  - "photo" → a photorealistic, cinematic promo image.
  *
@@ -27,7 +27,7 @@ export function buildImagePrompt(style: ImageStyle, ticker: string, description:
   return (
     `Design a clean, modern, minimal logo for a crypto token. ` +
     `Subject (make the logo clearly about this): ${subject}. ` +
-    `Style: a single centered icon — either a cute glossy mascot character or a bold ` +
+    `Style: a single centered icon - either a cute glossy mascot character or a bold ` +
     `symbolic emblem, whichever best fits the subject. Flat vector illustration, ` +
     `thick clean outlines, smooth simple shapes, tasteful gradients, soft rim light, ` +
     `vibrant but balanced colors, strong readable silhouette, lots of padding, ` +
@@ -49,7 +49,7 @@ export async function generateTokenImage(
   // fallback every time.
   const size = process.env.IMAGE_SIZE || "1024x1024";
 
-  // 1) Bankr LLM Gateway (preferred — one key for text + image + more).
+  // 1) Bankr LLM Gateway (preferred - one key for text + image + more).
   const bankrKey = process.env.BANKR_API_KEY;
   if (bankrKey) {
     const base = process.env.BANKR_BASE_URL || "https://llm.bankr.bot";

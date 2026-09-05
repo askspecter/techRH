@@ -40,7 +40,7 @@ export class PonsV2Adapter implements LaunchStrategy {
 
     // NON-BLOCKING whitelist check. Pons v2 launches are whitelist-gated
     // ON-CHAIN: if the wallet isn't allowlisted, launchToken() reverts no matter
-    // how correct the calldata is — the frontend cannot bypass that. We never
+    // how correct the calldata is - the frontend cannot bypass that. We never
     // block here (deploy is always attempted, per request), but we surface a
     // clear reason up front so a revert isn't a mystery.
     const allowed = await canLaunch(account).catch(() => null);
@@ -74,7 +74,7 @@ export class PonsV2Adapter implements LaunchStrategy {
         farcaster: "",
       },
       // A successful on-chain launch (selector 0xa72101af) set this to the
-      // caller's address, not the zero address — some factory paths revert on
+      // caller's address, not the zero address - some factory paths revert on
       // zero. Match the proven-working calldata.
       creatorFeeRecipient: account,
       creatorTaxBps: 0,

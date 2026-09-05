@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 /**
- * Wallet button — opens RainbowKit's polished connect modal (MetaMask ·
+ * Wallet button - opens RainbowKit's polished connect modal (MetaMask ·
  * Browser Wallet · Rainbow · WalletConnect).
  *
  * IMPORTANT: RainbowKit is rendered client-side only, after mount. Its internal

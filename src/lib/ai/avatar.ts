@@ -2,7 +2,7 @@
  * Deterministic fallback logo generator.
  *
  * When no image-gen provider is configured (or it fails), we still return a
- * real, designed token mark so the studio works end-to-end — not just initials
+ * real, designed token mark so the studio works end-to-end - not just initials
  * on a flat disc. Each ticker deterministically maps to a glossy coin with a
  * unique gradient and one of several vector emblems (orbit, gem, spark, or a
  * beveled monogram). Same ticker → same logo, every time.
@@ -24,7 +24,7 @@ export function generateFallbackLogo(ticker: string): string {
 
   const emblem = (() => {
     switch (archetype) {
-      case 0: // orbit — rings + glowing core
+      case 0: // orbit - rings + glowing core
         return `
           <g fill="none" stroke="#fff" stroke-opacity="0.9">
             <circle cx="128" cy="128" r="66" stroke-width="7"/>
@@ -32,7 +32,7 @@ export function generateFallbackLogo(ticker: string): string {
           </g>
           <circle cx="128" cy="128" r="26" fill="#fff"/>
           <circle cx="118" cy="118" r="8" fill="#fff" fill-opacity="0.6"/>`;
-      case 1: // gem — faceted diamond
+      case 1: // gem - faceted diamond
         return `
           <g fill="#fff">
             <path d="M128 58 L196 118 L128 208 L60 118 Z" fill-opacity="0.96"/>
@@ -40,14 +40,14 @@ export function generateFallbackLogo(ticker: string): string {
             <path d="M128 58 L60 118 L128 118 Z" fill-opacity="0.85"/>
             <path d="M60 118 L128 118 L128 208 Z" fill-opacity="0.6"/>
           </g>`;
-      case 2: // spark — bold four-point star
+      case 2: // spark - bold four-point star
         return `
           <path d="M128 48 C138 104 152 118 208 128 C152 138 138 152 128 208
                    C118 152 104 138 48 128 C104 118 118 104 128 48 Z"
                 fill="#fff"/>
           <circle cx="128" cy="128" r="14" fill="${c1}"/>`;
       default: {
-        // beveled monogram — a designed glyph, not plain text
+        // beveled monogram - a designed glyph, not plain text
         const label = initials.length > 2 ? initials : initial;
         const fontSize = label.length >= 3 ? 82 : label.length === 2 ? 116 : 148;
         return `

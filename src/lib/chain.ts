@@ -2,7 +2,7 @@ import { defineChain } from "viem";
 
 // Read an env var but treat a set-but-empty value ("") the same as unset. `??`
 // only catches null/undefined, so an empty Vercel env var would otherwise slip
-// through — and `Number("")` is 0, which produces an invalid chain id, a broken
+// through - and `Number("")` is 0, which produces an invalid chain id, a broken
 // wagmi client, and the "undefined is not an object (evaluating 'e.uid')" crash
 // in RainbowKit. This guards every network value against that.
 function env(name: string, fallback: string): string {

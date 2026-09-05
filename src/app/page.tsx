@@ -148,7 +148,7 @@ export default function HomePage() {
             <p className="text-lg font-semibold text-zinc-900">
               {items.length === 0 ? "No launches yet." : "No tokens match your search."}
             </p>
-            <p className="mt-2 text-sm text-zinc-600">Be the first — open the studio and ship a token.</p>
+            <p className="mt-2 text-sm text-zinc-600">Be the first - open the studio and ship a token.</p>
             <Link href="/create" className="btn-brand mt-6 inline-flex">Launch a token →</Link>
           </div>
         ) : (
@@ -221,9 +221,9 @@ function Segmented({
   );
 }
 
-/** Compact USD like $1.2K / $3.4M, or "—" when unknown. */
+/** Compact USD like $1.2K / $3.4M, or "-" when unknown. */
 function fmtUsdCompact(v: number | null | undefined): string {
-  if (v == null || !Number.isFinite(v)) return "—";
+  if (v == null || !Number.isFinite(v)) return "-";
   if (v === 0) return "$0";
   if (v < 1000) return `$${v.toLocaleString("en-US", { maximumFractionDigits: v < 1 ? 4 : 2 })}`;
   return `$${v.toLocaleString("en-US", { notation: "compact", maximumFractionDigits: 1 })}`;

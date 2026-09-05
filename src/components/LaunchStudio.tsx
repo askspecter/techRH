@@ -201,7 +201,7 @@ export function LaunchStudio() {
         </p>
       </div>
 
-      {/* Step 1 — idea */}
+      {/* Step 1 - idea */}
       <Step n="01" title="Describe your idea" className="animate-fade-up">
         <div className="flex flex-col gap-2 sm:flex-row">
           <input
@@ -225,7 +225,7 @@ export function LaunchStudio() {
 
       {result && (
         <>
-          {/* Step 2 — package */}
+          {/* Step 2 - package */}
           <Step n="02" title="Your AI launch package" className="animate-fade-up">
             <div className="flex items-start gap-4">
               <div className="flex flex-col items-center gap-2">
@@ -329,7 +329,7 @@ export function LaunchStudio() {
             </Reveal>
           </Step>
 
-          {/* Step 3 — model */}
+          {/* Step 3 - model */}
           <Step n="03" title="Choose a launch model" className="animate-fade-up">
             <VersionSelector
               versions={versions}
@@ -400,7 +400,7 @@ export function LaunchStudio() {
             )}
           </Step>
 
-          {/* Step 4 — deploy */}
+          {/* Step 4 - deploy */}
           <Step n="04" title="Deploy to Pons" className="animate-fade-up">
             {isConnected && (
               <div className="mb-3 flex items-center justify-between rounded-xl border border-ink-line bg-white/60 px-3 py-2 text-xs">
@@ -421,7 +421,7 @@ export function LaunchStudio() {
                   inputMode="decimal"
                   className="w-32 rounded-xl border border-ink-line bg-white/70 px-3 py-2 font-mono text-sm outline-none focus:border-rose/60"
                 />
-                <span className="text-xs text-zinc-500">ETH — buy your own token at launch</span>
+                <span className="text-xs text-zinc-500">ETH - buy your own token at launch</span>
               </div>
             </label>
 
@@ -501,7 +501,7 @@ function Reveal({ title, children }: { title: string; children: React.ReactNode 
   );
 }
 
-/** Cinematic "cooking" reel — a scanning frame + staged captions. */
+/** Cinematic "cooking" reel - a scanning frame + staged captions. */
 function CookingReel() {
   const [pct, setPct] = useState(8);
   useEffect(() => {

@@ -68,7 +68,7 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
       const revert = err.walk((e) => e instanceof ContractFunctionRevertedError);
       if (revert instanceof ContractFunctionRevertedError) {
         const name = revert.data?.errorName;
-        if (name) return `${name}${revert.reason ? ` — ${revert.reason}` : ""}`;
+        if (name) return `${name}${revert.reason ? ` - ${revert.reason}` : ""}`;
         if (revert.reason) return revert.reason;
       }
       return err.shortMessage || err.message;
@@ -87,12 +87,12 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
         } catch {
           throw new Error(
             `Your wallet must be on ${robinhoodChain.name} (chain ${robinhoodChain.id}). ` +
-              `Switch networks in your wallet — this is an EVM chain, not Solana — then try again.`
+              `Switch networks in your wallet - this is an EVM chain, not Solana - then try again.`
           );
         }
       }
       setStatus("preparing");
-      // On-chain metadata must be short — a data-URI logo (e.g. AI-generated)
+      // On-chain metadata must be short - a data-URI logo (e.g. AI-generated)
       // makes the factory revert with MetadataTooLong(). Replace it with a short
       // stored URL, and keep the description within a safe length.
       const onchainLogo = await toOnchainLogo(input.imageUri);
@@ -131,7 +131,7 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
         value: plan.value,
         // Enforce the network on the tx itself, so a wallet still on another
         // chain (e.g. Solana) gets a clear chain-mismatch error instead of
-        // silently sending — and never lands on the wrong network.
+        // silently sending - and never lands on the wrong network.
         chainId: robinhoodChain.id,
       });
       setTxHash(hash);
@@ -147,7 +147,7 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
     return (
       <div className="space-y-2">
         <a className="btn-brand w-full" href={explorerTx(txHash)} target="_blank" rel="noreferrer">
-          ✓ Launched — view on explorer
+          ✓ Launched - view on explorer
         </a>
         <a href="/feed" className="btn-ghost w-full">See it in the feed →</a>
       </div>

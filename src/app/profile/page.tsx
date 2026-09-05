@@ -140,7 +140,7 @@ export default function ProfilePage() {
         </button>
         {claimTx && (
           <a href={explorerTx(claimTx)} target="_blank" rel="noreferrer" className="mt-2 block text-xs text-pink">
-            ✓ Claim sent — view on explorer
+            ✓ Claim sent - view on explorer
           </a>
         )}
       </section>

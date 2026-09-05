@@ -11,7 +11,7 @@ import { useState } from "react";
 // dependency on a third-party icon CDN that can disappear).
 const CRYPTO: Record<string, string> = {
   ETH: "/eth.svg",
-  USDG: "/usdg.png", // Global Dollar — official green mark
+  USDG: "/usdg.png", // Global Dollar - official green mark
   USDC: "/usdc.svg",
 };
 

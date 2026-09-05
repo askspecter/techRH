@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import "@rainbow-me/rainbowkit/styles.css"; // REQUIRED, before globals — styles the connect modal
+import "@rainbow-me/rainbowkit/styles.css"; // REQUIRED, before globals - styles the connect modal
 import "./globals.css";
 import { Providers } from "./providers";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -9,13 +9,13 @@ import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: {
-    default: `${SITE.name} — cinematic AI launchpad`,
+    default: `${SITE.name} - cinematic AI launchpad`,
     template: `%s · ${SITE.name}`,
   },
   description: SITE.description,
   applicationName: SITE.name,
   openGraph: {
-    title: `${SITE.name} — cinematic AI launchpad`,
+    title: `${SITE.name} - cinematic AI launchpad`,
     description: SITE.description,
     type: "website",
   },
@@ -28,8 +28,8 @@ export const viewport: Viewport = {
 };
 
 // Render at request time, not static export. RainbowKit's config throws
-// "reading 'uid'" during Next's static prerender step — and Vercel restores a
-// build cache that can reintroduce old chunks — so skip prerender entirely.
+// "reading 'uid'" during Next's static prerender step - and Vercel restores a
+// build cache that can reintroduce old chunks - so skip prerender entirely.
 // This is a build/server-render concern only; the mobile crash was stale client
 // storage, handled by the reset script below.
 export const dynamic = "force-dynamic";
@@ -41,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/*
           One-time cleanup of stale wallet state. Earlier broken deploys wrote
           wagmi / WalletConnect / RainbowKit data to localStorage in shapes that
-          the current setup can't rehydrate — on real mobile Safari that threw in
+          the current setup can't rehydrate - on real mobile Safari that threw in
           the providers and white-screened the whole app. This runs before React
           hydrates and, once per version, drops any old wallet keys so RainbowKit
           always starts clean. (A fresh browser was never affected, which is why

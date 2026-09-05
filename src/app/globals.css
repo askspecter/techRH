@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /* ─────────────────────────────────────────────────────────────
-   CREO — light "Sunset" theme (teal→gold→orange→red gradient,
+   CREO - light "Sunset" theme (teal→gold→orange→red gradient,
    sampled from the CREO logo, glass cards)
    ───────────────────────────────────────────────────────────── */
 :root {
@@ -63,12 +63,12 @@
     radial-gradient(60rem 52rem at 55% 122%, rgba(224, 83, 42, 0.85), transparent 55%),
     #fff7ee;
 }
-/* Grain is distracting on a light theme — keep it off. */
+/* Grain is distracting on a light theme - keep it off. */
 .grain {
   display: none;
 }
 
-/* Signature gradient text + accents — gold → orange → red */
+/* Signature gradient text + accents - gold → orange → red */
 .grad-text {
   background: linear-gradient(100deg, #f2b134 0%, #ec7a2c 52%, #dd3b22 100%);
   -webkit-background-clip: text;
@@ -196,6 +196,6 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
   html { scroll-behavior: auto; }
-  /* The ticker marquee is core to the page's feel — keep it running. */
+  /* The ticker marquee is core to the page's feel - keep it running. */
   .marquee-track { animation: marquee 32s linear infinite !important; }
 }

@@ -10,7 +10,7 @@ export interface QuoteAsset {
 }
 
 /**
- * "Paired asset" picker — dark glass dropdown showing ticker + full name.
+ * "Paired asset" picker - dark glass dropdown showing ticker + full name.
  * A square badge stands in for a token logo (we don't host per-asset art).
  */
 export function QuoteAssetSelect({

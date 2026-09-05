@@ -29,7 +29,7 @@ interface Metrics {
  * GET /api/analytics
  * Launches + unique devs are indexed from CREO's own KV launch records. When a
  * Dune data source is configured (DUNE_API_KEY + query ids), volume, trades and
- * revenue are filled from Dune; otherwise they stay null and the UI shows "—".
+ * revenue are filled from Dune; otherwise they stay null and the UI shows "-".
  */
 export async function GET() {
   const kv = getKv();
