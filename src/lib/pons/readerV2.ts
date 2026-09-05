@@ -290,12 +290,10 @@ export async function indexV2Launches(opts?: {
   // Walk newest → oldest so we can stop early once we have enough.
   for (let to = latest; to >= start; to -= chunk) {
     const from = to - chunk + 1n > start ? to - chunk + 1n : start;
-    const logs = await client.getLogs({
-      address: PONS_V2.factory,
-      event: v2TokenLaunchedEvent,
-      fromBlock: from,
-      toBlock: to,
-    });
+    // Resilient: a public-RPC hiccup on one range yields [] instead of failing all.
+    const logs = await client
+      .getLogs({ address: PONS_V2.factory, event: v2TokenLaunchedEvent, fromBlock: from, toBlock: to })
+      .catch(() => []);
     for (const log of logs.reverse()) {
       const a = log.args;
       out.push({

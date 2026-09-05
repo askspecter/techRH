@@ -188,6 +188,56 @@ export async function indexLaunches(opts?: {
   return out;
 }
 
+/**
+ * Recent v1 TokenLaunched events, newest first, over a bounded window. Unlike
+ * indexLaunches (which backfills the whole history from the factory start block,
+ * oldest first), this is cheap enough for a live feed: it walks newest to oldest
+ * in small chunks, is resilient to per-chunk RPC failures, and stops once it has
+ * enough. Scans both the active and legacy v1 factories.
+ */
+export async function indexV1LaunchesRecent(opts?: {
+  lookback?: bigint;
+  chunk?: bigint;
+  limit?: number;
+}): Promise<IndexedLaunch[]> {
+  const client = ponsClient();
+  const latest = await client.getBlockNumber();
+  const lookback = opts?.lookback ?? 400_000n;
+  const chunk = opts?.chunk ?? 10_000n;
+  const limit = opts?.limit ?? 36;
+  const start = latest > lookback ? latest - lookback : 0n;
+  const factories = [PONS_V1.activeFactory, PONS_V1.legacyFactory];
+
+  const out: IndexedLaunch[] = [];
+  for (let to = latest; to >= start; to -= chunk) {
+    const from = to - chunk + 1n > start ? to - chunk + 1n : start;
+    for (const factory of factories) {
+      // Resilient: a per-chunk RPC failure yields [] instead of throwing.
+      const logs = await client
+        .getLogs({ address: factory, event: tokenLaunchedEvent, fromBlock: from, toBlock: to })
+        .catch(() => []);
+      for (const log of logs.reverse()) {
+        const a = log.args;
+        out.push({
+          token: a.token as Address,
+          deployer: a.deployer as Address,
+          pairToken: a.pairToken as Address,
+          pool: a.pool as Address,
+          launchConfigId: (a.launchConfigId ?? 0n) as bigint,
+          blockNumber: log.blockNumber ?? 0n,
+          txHash: log.transactionHash ?? "0x",
+        });
+      }
+    }
+    if (out.length >= limit) break;
+    if (from === start) break;
+  }
+
+  return out
+    .sort((x, y) => (y.blockNumber > x.blockNumber ? 1 : y.blockNumber < x.blockNumber ? -1 : 0))
+    .slice(0, limit);
+}
+
 export interface SwapPoint {
   block: number;
   priceWeth: number;

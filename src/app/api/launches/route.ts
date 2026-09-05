@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAddress, verifyMessage, type Address } from "viem";
 import { getKv } from "@/lib/kv";
 import { blockTimestamps, indexV2Launches, readTokenInfoV2 } from "@/lib/pons/readerV2";
+import { indexV1LaunchesRecent, readTokenState } from "@/lib/pons/reader";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -49,11 +50,14 @@ export async function GET(req: Request) {
     .slice(0, limit);
 
   // Fallback: when KV has no records (e.g. not configured, or launches weren't
-  // recorded), index recent launches straight from the Pons v2 factory on-chain
-  // so tokens still appear in the feed. Best-effort; never throws.
-  if (items.length === 0 && version !== "v1") {
+  // recorded), index recent launches straight from the Pons factories on-chain
+  // (v1 + v2) so tokens still appear in the feed. Best-effort; never throws.
+  if (items.length === 0) {
     try {
-      items = await onchainLaunches(Math.min(limit, 18));
+      const onchain = await onchainLaunches(Math.min(limit, 18));
+      items = onchain
+        .filter((r) => (version === "v1" || version === "v2" ? r.version === version : true))
+        .slice(0, limit);
     } catch {
       items = [];
     }
@@ -62,30 +66,51 @@ export async function GET(req: Request) {
   return NextResponse.json({ items });
 }
 
-/** Build feed records from recent on-chain Pons v2 TokenLaunched events. */
+/** Build feed records from recent on-chain Pons v1 + v2 TokenLaunched events. */
 async function onchainLaunches(limit: number): Promise<LaunchRecord[]> {
-  const launches = await indexV2Launches({ limit });
-  const [infos, ts] = await Promise.all([
-    Promise.all(launches.map((l) => readTokenInfoV2(l.token).catch(() => null))),
-    blockTimestamps(launches.map((l) => Number(l.blockNumber))),
+  const [v2, v1] = await Promise.all([
+    indexV2Launches({ limit }).catch(() => []),
+    indexV1LaunchesRecent({ limit }).catch(() => []),
   ]);
-  return launches
-    .map((l, i) => {
-      const info = infos[i];
-      const rec: LaunchRecord = {
-        token: l.token,
-        curve: l.curve,
-        version: "v2",
-        name: info?.name ?? "",
-        symbol: info?.symbol ?? "",
-        logo: info?.logo ?? "",
-        deployer: l.deployer,
-        txHash: l.txHash,
-        createdAt: (ts[Number(l.blockNumber)] ?? 0) * 1000,
-      };
-      return rec;
-    })
-    .filter((r) => r.name || r.symbol);
+
+  const [v2infos, v1states, ts] = await Promise.all([
+    Promise.all(v2.map((l) => readTokenInfoV2(l.token).catch(() => null))),
+    Promise.all(v1.map((l) => readTokenState(l.token).catch(() => null))),
+    blockTimestamps([...v2, ...v1].map((l) => Number(l.blockNumber))).catch(() => ({}) as Record<number, number>),
+  ]);
+
+  const recs: LaunchRecord[] = [];
+  v2.forEach((l, i) => {
+    const info = v2infos[i];
+    if (!info?.symbol && !info?.name) return;
+    recs.push({
+      token: l.token,
+      curve: l.curve,
+      version: "v2",
+      name: info?.name ?? "",
+      symbol: info?.symbol ?? "",
+      logo: info?.logo ?? "",
+      deployer: l.deployer,
+      txHash: l.txHash,
+      createdAt: (ts[Number(l.blockNumber)] ?? 0) * 1000,
+    });
+  });
+  v1.forEach((l, i) => {
+    const st = v1states[i];
+    if (!st?.symbol && !st?.name) return;
+    recs.push({
+      token: l.token,
+      version: "v1",
+      name: st?.name ?? "",
+      symbol: st?.symbol ?? "",
+      logo: st?.logo ?? "",
+      deployer: l.deployer,
+      txHash: l.txHash,
+      createdAt: (ts[Number(l.blockNumber)] ?? 0) * 1000,
+    });
+  });
+
+  return recs.sort((a, b) => b.createdAt - a.createdAt).slice(0, limit);
 }
 
 /** POST /api/launches - record a launch made through CREO. */
