@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { SITE } from "@/lib/site";
+import { SITE, OFFICIAL_TOKEN } from "@/lib/site";
 import { AssetLogo } from "@/components/AssetLogo";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { isVerified } from "@/lib/verified";
@@ -39,8 +39,8 @@ export default function HomePage() {
   useEffect(() => {
     fetch("/api/launches?limit=60")
       .then((r) => r.json())
-      .then((d: { items?: LaunchRecord[] }) => setItems(d.items ?? []))
-      .catch(() => setItems([]));
+      .then((d: { items?: LaunchRecord[] }) => setItems(withOfficial(d.items ?? [])))
+      .catch(() => setItems(withOfficial([])));
   }, []);
 
   // Market cap + volume for the loaded tokens (cached server-side).
@@ -83,7 +83,11 @@ export default function HomePage() {
           return b.createdAt - a.createdAt;
       }
     });
-    return list;
+    // Keep the official token pinned to the front regardless of sort.
+    const off = OFFICIAL_TOKEN.address.toLowerCase();
+    const pinned = list.filter((r) => r.token.toLowerCase() === off);
+    const rest = list.filter((r) => r.token.toLowerCase() !== off);
+    return [...pinned, ...rest];
   }, [items, q, sort, ver, stats]);
 
   return (
@@ -193,6 +197,24 @@ export default function HomePage() {
       </section>
     </div>
   );
+}
+
+/** Prepend the official token to the launches list (deduped), so the flagship
+ *  is always present in Explore even with an empty feed. */
+function withOfficial(items: LaunchRecord[]): LaunchRecord[] {
+  const addr = OFFICIAL_TOKEN.address.toLowerCase();
+  if (items.some((i) => i.token.toLowerCase() === addr)) return items;
+  const official: LaunchRecord = {
+    token: OFFICIAL_TOKEN.address,
+    version: OFFICIAL_TOKEN.version,
+    name: OFFICIAL_TOKEN.name,
+    symbol: OFFICIAL_TOKEN.symbol,
+    logo: OFFICIAL_TOKEN.logo,
+    deployer: "",
+    txHash: "",
+    createdAt: Date.now(),
+  };
+  return [official, ...items];
 }
 
 function Segmented({

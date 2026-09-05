@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { explorerTx } from "@/lib/chain";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { isVerified } from "@/lib/verified";
+import { OFFICIAL_TOKEN } from "@/lib/site";
 
 interface LaunchRecord {
   token: string;
@@ -30,9 +31,9 @@ export default function FeedPage() {
       .then((r) => r.json())
       .then((d: { items?: LaunchRecord[]; error?: string }) => {
         if (d.error) setError(d.error);
-        setItems(d.items ?? []);
+        setItems(withOfficial(d.items ?? []));
       })
-      .catch(() => setError("Couldn't load the feed."));
+      .catch(() => setItems(withOfficial([])));
   }, []);
 
   return (
@@ -110,6 +111,23 @@ export default function FeedPage() {
       )}
     </div>
   );
+}
+
+/** Prepend the official token (deduped) so the flagship always shows. */
+function withOfficial(items: LaunchRecord[]): LaunchRecord[] {
+  const addr = OFFICIAL_TOKEN.address.toLowerCase();
+  if (items.some((i) => i.token.toLowerCase() === addr)) return items;
+  const official: LaunchRecord = {
+    token: OFFICIAL_TOKEN.address,
+    version: OFFICIAL_TOKEN.version,
+    name: OFFICIAL_TOKEN.name,
+    symbol: OFFICIAL_TOKEN.symbol,
+    logo: OFFICIAL_TOKEN.logo,
+    deployer: "",
+    txHash: "",
+    createdAt: Date.now(),
+  };
+  return [official, ...items];
 }
 
 function shortAddr(a: string): string {
