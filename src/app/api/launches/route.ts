@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAddress, verifyMessage, type Address } from "viem";
 import { getKv } from "@/lib/kv";
+import { blockTimestamps, indexV2Launches, readTokenInfoV2 } from "@/lib/pons/readerV2";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,17 +24,16 @@ export interface LaunchRecord {
   createdAt: number;
 }
 
-/** GET /api/launches?limit=48 - newest CREO launches (from KV). */
+/** GET /api/launches?limit=48 - newest CREO launches (from KV, with an
+ *  on-chain fallback so launches still show when KV isn't configured). */
 export async function GET(req: Request) {
-  const kv = getKv();
-  if (!kv) return NextResponse.json({ items: [] });
-
   const { searchParams } = new URL(req.url);
   const limit = Math.min(Math.max(Number(searchParams.get("limit") ?? 48), 1), 100);
   const version = searchParams.get("version"); // optional "v1" | "v2"
   const token = searchParams.get("token"); // optional: fetch one record
 
-  const raw = (await kv.lrange<LaunchRecord | string>(KEY, 0, 199)) ?? [];
+  const kv = getKv();
+  const raw = kv ? ((await kv.lrange<LaunchRecord | string>(KEY, 0, 199)) ?? []) : [];
   const all = raw
     .map((r) => (typeof r === "string" ? safeParse(r) : r))
     .filter((r): r is LaunchRecord => !!r && isAddress(r.token));
@@ -44,11 +44,48 @@ export async function GET(req: Request) {
     return NextResponse.json({ item });
   }
 
-  const items = all
+  let items = all
     .filter((r) => (version === "v1" || version === "v2" ? r.version === version : true))
     .slice(0, limit);
 
+  // Fallback: when KV has no records (e.g. not configured, or launches weren't
+  // recorded), index recent launches straight from the Pons v2 factory on-chain
+  // so tokens still appear in the feed. Best-effort; never throws.
+  if (items.length === 0 && version !== "v1") {
+    try {
+      items = await onchainLaunches(Math.min(limit, 18));
+    } catch {
+      items = [];
+    }
+  }
+
   return NextResponse.json({ items });
+}
+
+/** Build feed records from recent on-chain Pons v2 TokenLaunched events. */
+async function onchainLaunches(limit: number): Promise<LaunchRecord[]> {
+  const launches = await indexV2Launches({ limit });
+  const [infos, ts] = await Promise.all([
+    Promise.all(launches.map((l) => readTokenInfoV2(l.token).catch(() => null))),
+    blockTimestamps(launches.map((l) => Number(l.blockNumber))),
+  ]);
+  return launches
+    .map((l, i) => {
+      const info = infos[i];
+      const rec: LaunchRecord = {
+        token: l.token,
+        curve: l.curve,
+        version: "v2",
+        name: info?.name ?? "",
+        symbol: info?.symbol ?? "",
+        logo: info?.logo ?? "",
+        deployer: l.deployer,
+        txHash: l.txHash,
+        createdAt: (ts[Number(l.blockNumber)] ?? 0) * 1000,
+      };
+      return rec;
+    })
+    .filter((r) => r.name || r.symbol);
 }
 
 /** POST /api/launches - record a launch made through CREO. */
