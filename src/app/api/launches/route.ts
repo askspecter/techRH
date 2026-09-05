@@ -143,6 +143,31 @@ function topicToAddress(t?: string): string {
 // through these, so the event may be emitted there instead of the factory).
 const V2_LAUNCH_EMITTERS = [PONS_V2.factory, PONS_V2.launchAndBuy, PONS_V2.launchDeployer];
 
+/**
+ * Resolve the launched token (and curve) from a transaction's logs via
+ * Blockscout, matching the v2 TokenLaunched topic. Server-side and reliable, so
+ * recording a launch does not depend on the browser reading the receipt.
+ */
+async function resolveLaunchFromTx(txHash: string): Promise<{ token: string; curve?: string } | null> {
+  const res = await fetch(`${explorerUrl}/api/v2/transactions/${txHash}/logs`, {
+    cache: "no-store",
+    signal: AbortSignal.timeout(9000),
+    headers: { accept: "application/json" },
+  });
+  if (!res.ok) return null;
+  const data = (await res.json()) as { items?: Array<{ topics?: string[] }> };
+  const items = Array.isArray(data.items) ? data.items : [];
+  for (const it of items) {
+    const topics = it.topics ?? [];
+    if (!topics[0] || topics[0].toLowerCase() !== V2_LAUNCH_TOPIC.toLowerCase()) continue;
+    const token = topicToAddress(topics[1]);
+    if (!isAddress(token)) continue;
+    const curve = topicToAddress(topics[2]);
+    return { token, curve: isAddress(curve) ? curve : undefined };
+  }
+  return null;
+}
+
 /** Parse TokenLaunched logs from one Blockscout address-logs response. */
 function parseLaunchLogs(
   items: Array<{ topics?: string[]; transaction_hash?: string; block_number?: number; block_timestamp?: string }>
@@ -254,13 +279,37 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  if (!body.token || !isAddress(body.token)) {
-    return NextResponse.json({ error: "Missing/invalid token address." }, { status: 400 });
+  // Resolve the token address. The client usually parses it from the receipt,
+  // but that relies on the browser reaching the RPC (which can fail). If it's
+  // missing, resolve it server-side from the tx's logs via Blockscout using the
+  // txHash. If Blockscout hasn't indexed the tx yet, return `pending` so the
+  // client can retry - this is how a launch reliably reaches the feed even when
+  // the browser can't read the receipt.
+  let tokenAddr = body.token && isAddress(body.token) ? (body.token as string) : "";
+  let curveAddr = body.curve && isAddress(body.curve) ? (body.curve as string) : "";
+  const txHash = String(body.txHash ?? "");
+  if (!tokenAddr && /^0x[0-9a-fA-F]{64}$/.test(txHash)) {
+    const resolved = await resolveLaunchFromTx(txHash).catch(() => null);
+    if (resolved) {
+      tokenAddr = resolved.token;
+      curveAddr = curveAddr || resolved.curve || "";
+    }
+  }
+  if (!tokenAddr || !isAddress(tokenAddr)) {
+    return NextResponse.json({ pending: true }, { status: 202 });
   }
 
+  // De-dupe: skip if this token is already in the feed.
+  const existing = (await kv.lrange<LaunchRecord | string>(KEY, 0, 199)) ?? [];
+  const already = existing.some((r) => {
+    const rec = typeof r === "string" ? safeParse(r) : r;
+    return rec?.token?.toLowerCase() === tokenAddr.toLowerCase();
+  });
+  if (already) return NextResponse.json({ ok: true, deduped: true });
+
   const record: LaunchRecord = {
-    token: body.token,
-    curve: body.curve && isAddress(body.curve) ? body.curve : undefined,
+    token: tokenAddr,
+    curve: curveAddr && isAddress(curveAddr) ? curveAddr : undefined,
     version: body.version === "v1" ? "v1" : "v2",
     name: String(body.name ?? "").slice(0, 80),
     symbol: String(body.symbol ?? "").slice(0, 16),

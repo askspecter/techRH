@@ -29,35 +29,58 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
   const ready = strategy.info().ready;
 
   async function recordLaunch(hash: `0x${string}`) {
+    if (!address) return;
+
+    // Fast path: try to read the token straight from the receipt. This relies
+    // on the browser reaching the RPC, so it may fail - that's fine, the server
+    // resolves the token from the txHash via Blockscout when it's missing.
+    let token = "";
+    let curve: string | undefined;
     try {
-      if (!publicClient || !address) return;
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-      const logs = [
-        ...parseEventLogs({ abi: [v2TokenLaunchedEvent], logs: receipt.logs }),
-        ...parseEventLogs({ abi: [tokenLaunchedEvent], logs: receipt.logs }),
-      ];
-      const ev = logs.find((l) => (l.args as { token?: string })?.token);
-      const args = ev?.args as { token?: string; curve?: string } | undefined;
-      if (!args?.token) return;
-      await fetch("/api/launches", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          token: args.token,
-          curve: args.curve,
-          version: input.version,
-          name: input.name,
-          symbol: input.ticker,
-          logo: input.imageUri,
-          twitter: input.twitter,
-          telegram: input.telegram,
-          website: input.website,
-          deployer: address,
-          txHash: hash,
-        }),
-      });
+      if (publicClient) {
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        const logs = [
+          ...parseEventLogs({ abi: [v2TokenLaunchedEvent], logs: receipt.logs }),
+          ...parseEventLogs({ abi: [tokenLaunchedEvent], logs: receipt.logs }),
+        ];
+        const args = logs.find((l) => (l.args as { token?: string })?.token)?.args as
+          | { token?: string; curve?: string }
+          | undefined;
+        token = args?.token ?? "";
+        curve = args?.curve;
+      }
     } catch {
-      // best-effort: the feed record is non-critical
+      // ignore - the server will resolve from txHash
+    }
+
+    const payload = {
+      token,
+      curve,
+      version: input.version,
+      name: input.name,
+      symbol: input.ticker,
+      logo: input.imageUri,
+      twitter: input.twitter,
+      telegram: input.telegram,
+      website: input.website,
+      deployer: address,
+      txHash: hash,
+    };
+
+    // POST with a few retries: if the server can't resolve the token yet
+    // (Blockscout still indexing the tx), it returns 202 - back off and retry.
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        const res = await fetch("/api/launches", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (res.status !== 202) return; // stored, deduped, or a hard error
+      } catch {
+        // network hiccup - retry
+      }
+      await new Promise((r) => setTimeout(r, 4000));
     }
   }
 
