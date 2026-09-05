@@ -28,7 +28,7 @@ export async function checkTickerAvailability(ticker: string): Promise<Availabil
   try {
     const res = await fetch(
       `${explorerUrl}/api/v2/tokens?q=${encodeURIComponent(symbol)}&type=ERC-20`,
-      { headers: { accept: "application/json" }, cache: "no-store" }
+      { headers: { accept: "application/json" }, cache: "no-store", signal: AbortSignal.timeout(6000) }
     );
     if (!res.ok) return empty;
 

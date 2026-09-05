@@ -69,7 +69,7 @@ export function LaunchStudio() {
   const [imageBusy, setImageBusy] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
 
-  async function regenImage(style: "icon" | "photo") {
+  async function regenImage(style: "icon" | "photo", override?: { ticker?: string; description?: string }) {
     setImageStyle(style);
     setImageError(null);
     setImageBusy(true);
@@ -78,8 +78,8 @@ export function LaunchStudio() {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          ticker,
-          description: description || result?.package.lore || "",
+          ticker: override?.ticker ?? ticker,
+          description: override?.description ?? description ?? "",
           style,
         }),
       });
@@ -142,6 +142,9 @@ export function LaunchStudio() {
       setVersion(r.package.recommendation.version);
       setQuoteAsset(r.package.recommendation.quoteAsset);
       setLogo(r.logo);
+      // The package is shown instantly with a placeholder logo; fetch the real
+      // AI image in the background so it never delays the flow.
+      void regenImage("icon", { ticker: r.package.ticker, description: r.package.description });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generation failed.");
     } finally {

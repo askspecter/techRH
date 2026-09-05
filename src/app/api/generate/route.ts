@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateLaunchPackage } from "@/lib/ai/generate";
-import { generateTokenImage } from "@/lib/ai/image";
+import { generateFallbackLogo } from "@/lib/ai/avatar";
 import { checkTickerAvailability } from "@/lib/ai/availability";
 
 export const runtime = "nodejs";
@@ -29,10 +29,11 @@ export async function POST(req: Request) {
   try {
     const pkg = await generateLaunchPackage(idea);
 
-    // Logo: real AI image if a provider is configured, else deterministic SVG.
-    const logo = await generateTokenImage(pkg.ticker, pkg.description, "icon");
-
-    // Availability is a soft warning; run it in parallel-safe fashion.
+    // Return fast: an instant deterministic SVG logo as a placeholder, plus the
+    // availability check (both cheap). The real AI image is generated separately
+    // by the client via /api/image so it never blocks the package - image
+    // generation is the slowest step and would otherwise stall the whole flow.
+    const logo = generateFallbackLogo(pkg.ticker);
     const availability = await checkTickerAvailability(pkg.ticker);
 
     return NextResponse.json({ package: pkg, logo, availability });
