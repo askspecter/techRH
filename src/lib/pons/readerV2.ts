@@ -342,6 +342,132 @@ export async function indexCurveTrades(
   return raw.map(({ block, price }) => ({ block, price }));
 }
 
+// ── Activity: full trade rows (for the trades list + volume) ─────────────────
+
+export interface CurveTradeRow {
+  block: number;
+  logIndex: number;
+  type: "buy" | "sell";
+  account: Address;
+  /** Quote-asset amount, in whole units. */
+  quote: number;
+  /** Launch-token amount, in whole units. */
+  tokens: number;
+  txHash: `0x${string}`;
+}
+
+/**
+ * Index a curve's CurveBuy / CurveSell events into full trade rows (who, side,
+ * quote amount, token amount), newest last. Same bounded, chunked scan as the
+ * chart. The caller sums `quote` for volume and takes the tail for a recent
+ * trades list.
+ */
+export async function indexCurveTradeRows(
+  curve: Address,
+  tokenDecimals: number,
+  quoteDecimals: number,
+  opts?: { lookback?: bigint; chunk?: bigint }
+): Promise<CurveTradeRow[]> {
+  const client = ponsClient();
+  const latest = await client.getBlockNumber();
+  const lookback = opts?.lookback ?? 250_000n;
+  const chunk = opts?.chunk ?? 10_000n;
+  const start = latest > lookback ? latest - lookback : 0n;
+  const tokDiv = 10 ** tokenDecimals;
+  const quoteDiv = 10 ** quoteDecimals;
+
+  const rows: CurveTradeRow[] = [];
+  for (let from = start; from <= latest; from += chunk) {
+    const to = from + chunk - 1n > latest ? latest : from + chunk - 1n;
+    const [buys, sells] = await Promise.all([
+      client.getLogs({ address: curve, event: v2CurveBuyEvent, fromBlock: from, toBlock: to }),
+      client.getLogs({ address: curve, event: v2CurveSellEvent, fromBlock: from, toBlock: to }),
+    ]);
+    for (const log of buys) {
+      const q = log.args.quoteIn;
+      const t = log.args.tokensOut;
+      if (q == null || t == null) continue;
+      rows.push({
+        block: Number(log.blockNumber ?? 0n),
+        logIndex: Number(log.logIndex ?? 0),
+        type: "buy",
+        account: (log.args.buyer ?? zeroAddress) as Address,
+        quote: Number(q) / quoteDiv,
+        tokens: Number(t) / tokDiv,
+        txHash: (log.transactionHash ?? "0x") as `0x${string}`,
+      });
+    }
+    for (const log of sells) {
+      const q = log.args.quoteOut;
+      const t = log.args.tokensIn;
+      if (q == null || t == null) continue;
+      rows.push({
+        block: Number(log.blockNumber ?? 0n),
+        logIndex: Number(log.logIndex ?? 0),
+        type: "sell",
+        account: (log.args.seller ?? zeroAddress) as Address,
+        quote: Number(q) / quoteDiv,
+        tokens: Number(t) / tokDiv,
+        txHash: (log.transactionHash ?? "0x") as `0x${string}`,
+      });
+    }
+    if (from === latest) break;
+  }
+
+  rows.sort((a, b) => a.block - b.block || a.logIndex - b.logIndex);
+  return rows;
+}
+
+/** Block timestamps (unix seconds) for a small set of block numbers. */
+export async function blockTimestamps(blocks: number[]): Promise<Record<number, number>> {
+  const client = ponsClient();
+  const unique = Array.from(new Set(blocks));
+  const out: Record<number, number> = {};
+  await Promise.all(
+    unique.map(async (b) => {
+      try {
+        const blk = await client.getBlock({ blockNumber: BigInt(b) });
+        out[b] = Number(blk.timestamp);
+      } catch {
+        /* leave unset */
+      }
+    })
+  );
+  return out;
+}
+
+// ── Supply + burned ──────────────────────────────────────────────────────────
+
+const erc20BalanceAbi = [
+  { type: "function", name: "balanceOf", stateMutability: "view", inputs: [{ name: "a", type: "address" }], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "totalSupply", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+] as const;
+
+const DEAD = "0x000000000000000000000000000000000000dEaD" as Address;
+
+export interface SupplyStats {
+  totalSupply: number;
+  burned: number;
+  circulating: number;
+}
+
+/**
+ * Total supply plus tokens sent to burn sinks (dead + zero address). Circulating
+ * is totalSupply minus burned. All in whole token units.
+ */
+export async function tokenSupplyStats(token: Address, decimals: number): Promise<SupplyStats> {
+  const client = ponsClient();
+  const div = 10 ** decimals;
+  const [total, dead, zero] = await Promise.all([
+    client.readContract({ address: token, abi: erc20BalanceAbi, functionName: "totalSupply" }) as Promise<bigint>,
+    client.readContract({ address: token, abi: erc20BalanceAbi, functionName: "balanceOf", args: [DEAD] }).catch(() => 0n) as Promise<bigint>,
+    client.readContract({ address: token, abi: erc20BalanceAbi, functionName: "balanceOf", args: [zeroAddress] }).catch(() => 0n) as Promise<bigint>,
+  ]);
+  const totalSupply = Number(total) / div;
+  const burned = (Number(dead) + Number(zero)) / div;
+  return { totalSupply, burned, circulating: Math.max(totalSupply - burned, 0) };
+}
+
 /** Quote-asset shape a chart needs: native ETH vs an ERC-20, and its decimals. */
 export async function getQuoteMeta(curve: Address): Promise<{ isNative: boolean; decimals: number; pairToken: Address }> {
   const client = ponsClient();

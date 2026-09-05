@@ -123,6 +123,22 @@ export const V2_QUOTE_TOKENS: { symbol: string; name: string; address: `0x${stri
 /** v2 graduation threshold in ETH (from Pons v2 docs). */
 export const V2_GRADUATION_THRESHOLD_ETH = 4.2;
 
+/**
+ * Human label for a token's paired/quote asset, from its address. Native ETH
+ * (zero address) and the v1 WETH pool both read as "ETH"; known ERC-20 quote
+ * assets resolve to their ticker; anything else falls back to a short address.
+ * Pure + client-safe (static data only).
+ */
+export function pairAssetSymbol(address?: string | null): string {
+  if (!address) return "ETH";
+  const a = address.toLowerCase();
+  if (a === "0x0000000000000000000000000000000000000000") return "ETH";
+  if (a === PONS_V1.weth.toLowerCase()) return "ETH";
+  const match = V2_QUOTE_TOKENS.find((t) => t.address.toLowerCase() === a);
+  if (match) return match.symbol;
+  return `${address.slice(0, 6)}…${address.slice(-4)}`;
+}
+
 /** A version is deployable only when its factory AND its launch ABI are set. */
 export function isVersionDeployable(version: PonsVersion): boolean {
   const cfg = REGISTRY[version];

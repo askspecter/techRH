@@ -10,6 +10,10 @@ import { PriceChart } from "./PriceChart";
 import { PriceChartV2 } from "./PriceChartV2";
 import { ClaimFees } from "./ClaimFees";
 import { VerifiedBadge } from "./VerifiedBadge";
+import { PairedWithChip } from "./PairedWithChip";
+import { TokenActivity } from "./TokenActivity";
+import { TopHolders } from "./TopHolders";
+import { TokenDetails } from "./TokenDetails";
 import { isVerified } from "@/lib/verified";
 import { v2FactoryAbi } from "@/lib/pons/abisV2";
 import { PONS_V2 } from "@/lib/pons";
@@ -167,7 +171,10 @@ export function TokenDashboard({ address }: { address: string }) {
                   <CopyButton value={header.token} />
                 </div>
               </div>
-              <span className="chip shrink-0 uppercase">{version}</span>
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <span className="chip uppercase">{version}</span>
+                <PairedWithChip pairToken={v2 ? v2.pairToken : undefined} />
+              </div>
             </div>
             {header.description && <p className="mt-3 text-sm text-zinc-600">{header.description}</p>}
             {isCreator && (
@@ -195,6 +202,7 @@ export function TokenDashboard({ address }: { address: string }) {
         {version === "v2" && v2 && (
           <div className="mt-4 space-y-4">
             <PriceChartV2 token={v2.token} />
+            <TokenActivity token={v2.token} />
             {v2.phase === 0 && v2.curve && (
               <>
                 <section className="card p-5">
@@ -245,6 +253,15 @@ export function TokenDashboard({ address }: { address: string }) {
               pairToken={v2.pairToken}
               creator={v2.creatorFeeRecipient && v2.creatorFeeRecipient !== zeroAddress ? v2.creatorFeeRecipient : v2.deployer}
             />
+            <TopHolders token={v2.token} creator={v2.deployer} />
+            <TokenDetails
+              token={v2.token}
+              creator={v2.deployer}
+              pairToken={v2.pairToken}
+              pool={v2.curveAddress}
+              poolLabel="Bonding curve"
+              decimals={v2.decimals}
+            />
           </div>
         )}
 
@@ -288,6 +305,15 @@ export function TokenDashboard({ address }: { address: string }) {
               protocolSharePercent={v1.fees.protocolSharePercent}
               tokenPriceUsd={v1.price.usd}
               ethUsd={v1.price.ethUsd}
+            />
+
+            <TopHolders token={v1.token} creator={v1.deployer} />
+            <TokenDetails
+              token={v1.token}
+              creator={v1.deployer}
+              pool={v1.pool}
+              poolLabel="Uniswap pool"
+              decimals={v1.decimals}
             />
 
             <a className="btn-ghost w-full" href={`${explorerUrl}/address/${v1.pool}`} target="_blank" rel="noreferrer">
