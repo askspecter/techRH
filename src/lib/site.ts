@@ -4,8 +4,8 @@ export const SITE = {
   tagline: "One line in. A token out.",
   description:
     "Cinematic AI launchpad. Describe a token in one sentence, watch the full launch package render, and deploy to Pons on Robinhood Chain, non-custodial.",
-  x: "https://x.com/creodotworks",
-  xHandle: "@creodotworks",
+  x: "https://x.com/creodotfamily",
+  xHandle: "@creodotfamily",
   company: "CREO",
   chain: "Robinhood Chain",
   poweredBy: "Pons",
