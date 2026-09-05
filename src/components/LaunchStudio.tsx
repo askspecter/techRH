@@ -203,19 +203,39 @@ export function LaunchStudio() {
 
       {/* Step 1 - idea */}
       <Step n="01" title="Describe your idea" className="animate-fade-up">
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="idea-field group relative">
           <input
             value={idea}
             onChange={(e) => setIdea(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && idea.trim().length >= 3 && generate()}
             placeholder="e.g. a cat coin that day-trades NVDA from the couch"
-            className="field"
+            className="w-full rounded-xl border border-ink-line bg-white/80 px-4 py-3.5 text-base text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-transparent"
           />
-          <button className="btn-ghost shrink-0" disabled={loading} onClick={spin} title="Random idea, instant generate">
-            🎲 Roulette
+        </div>
+        <div className="mt-2.5 flex flex-col gap-2 sm:flex-row">
+          <button
+            className="btn-ghost shrink-0"
+            disabled={loading}
+            onClick={spin}
+            title="Random idea, instant generate"
+          >
+            <DiceIcon /> Roulette
           </button>
-          <button className="btn-brand shrink-0" disabled={loading || idea.trim().length < 3} onClick={() => generate()}>
-            {loading ? "Rolling…" : "Generate"}
+          <button
+            className="btn-brand flex-1 sm:flex-none"
+            disabled={loading || idea.trim().length < 3}
+            onClick={() => generate()}
+          >
+            {loading ? (
+              <>
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                Rolling
+              </>
+            ) : (
+              <>
+                <SparkIcon /> Generate
+              </>
+            )}
           </button>
         </div>
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
@@ -498,6 +518,27 @@ function Reveal({ title, children }: { title: string; children: React.ReactNode 
       </summary>
       <div className="mt-2 whitespace-pre-wrap text-sm text-zinc-700">{children}</div>
     </details>
+  );
+}
+
+function DiceIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+      <rect x="3.5" y="3.5" width="17" height="17" rx="4" />
+      <circle cx="8.5" cy="8.5" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="15.5" cy="8.5" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="8.5" cy="15.5" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="15.5" cy="15.5" r="1.2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function SparkIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden>
+      <path d="M12 2l1.6 6.2L20 10l-6.4 1.8L12 18l-1.6-6.2L4 10l6.4-1.8L12 2z" />
+    </svg>
   );
 }
 

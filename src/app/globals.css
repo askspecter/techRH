@@ -167,6 +167,25 @@
 }
 .caption-in { animation: captionIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
+/* Idea input: a sunset gradient border that lights up on focus. */
+.idea-field {
+  position: relative;
+  border-radius: 0.85rem;
+}
+.idea-field::before {
+  content: "";
+  position: absolute;
+  inset: -1.5px;
+  border-radius: inherit;
+  background: linear-gradient(100deg, #f2b134, #ec7a2c 52%, #dd3b22);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  z-index: 0;
+}
+.idea-field:focus-within::before { opacity: 1; }
+.idea-field:focus-within { box-shadow: 0 12px 40px -14px rgba(224, 83, 42, 0.5); }
+.idea-field input { position: relative; z-index: 1; }
+
 @layer components {
   /* Frosted glass card */
   .card {
