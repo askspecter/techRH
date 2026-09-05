@@ -11,6 +11,7 @@ import { PriceChartV2 } from "./PriceChartV2";
 import { ClaimFees } from "./ClaimFees";
 import { VerifiedBadge } from "./VerifiedBadge";
 import { PairedWithChip } from "./PairedWithChip";
+import { TokenMarket } from "./TokenMarket";
 import { TokenActivity } from "./TokenActivity";
 import { TopHolders } from "./TopHolders";
 import { TokenDetails } from "./TokenDetails";
@@ -147,10 +148,17 @@ export function TokenDashboard({ address }: { address: string }) {
     <>
       <div className="mx-auto max-w-2xl px-4 py-8">
         {loading && <p className="mt-10 text-sm text-zinc-500">Reading on-chain state…</p>}
-        {error && !header && (
-          <div className="mt-10 card p-5">
-            <p className="text-sm text-zinc-500">{error}</p>
-            <button className="btn-ghost mt-3" onClick={load}>Retry</button>
+
+        {/* Not a Pons launch (or chain unreachable): still show the market from
+            DexScreener so price / market cap / volume / chart appear for any token. */}
+        {!loading && !header && (
+          <div className="mt-8 space-y-4">
+            <TokenMarket address={address} showHeader />
+            {error && (
+              <button className="btn-ghost w-full text-xs" onClick={load}>
+                Retry reading on-chain state
+              </button>
+            )}
           </div>
         )}
 
@@ -196,6 +204,14 @@ export function TokenDashboard({ address }: { address: string }) {
               </div>
             )}
           </section>
+        )}
+
+        {/* DexScreener market (price / market cap / volume / chart) for any
+            token that has a DEX market, shown above the Pons-specific panels. */}
+        {header && (
+          <div className="mt-4 space-y-4">
+            <TokenMarket address={address} />
+          </div>
         )}
 
         {/* v2 */}
