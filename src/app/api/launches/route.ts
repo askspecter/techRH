@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { isAddress, toEventSelector, verifyMessage, type Address } from "viem";
 import { getKv } from "@/lib/kv";
 import { indexV2Launches } from "@/lib/pons/readerV2";
+import { ponsClient } from "@/lib/pons/reader";
+import { tokenAbi as v1TokenAbi } from "@/lib/pons/abis";
+import { v2TokenAbi } from "@/lib/pons/abisV2";
 import { PONS_V1, PONS_V2 } from "@/lib/pons/registry";
 import { explorerUrl } from "@/lib/chain";
 
@@ -248,10 +251,14 @@ async function blockscoutV2Launches(limit: number): Promise<RawLaunch[]> {
     .slice(0, limit);
 }
 
+interface TokenMeta {
+  name: string;
+  symbol: string;
+  logo: string;
+}
+
 /** Token name/symbol/logo from Blockscout (reliable, no RPC). */
-async function blockscoutTokenMeta(
-  address: string
-): Promise<{ name: string; symbol: string; logo: string } | null> {
+async function blockscoutTokenMeta(address: string): Promise<TokenMeta | null> {
   try {
     const res = await fetch(`${explorerUrl}/api/v2/tokens/${address}`, {
       cache: "no-store",
@@ -264,6 +271,97 @@ async function blockscoutTokenMeta(
   } catch {
     return null;
   }
+}
+
+/**
+ * The launched token's logo, read straight from the contract. The Pons v2 art
+ * token keeps its logo inside getTokenInfo().tokenLogo; the v1 token exposes a
+ * logo() getter. Try v2 first, then v1. Best-effort - returns "" on any miss.
+ */
+async function onchainLogo(addr: Address): Promise<string> {
+  const client = ponsClient();
+  try {
+    const info = (await client.readContract({
+      address: addr,
+      abi: v2TokenAbi,
+      functionName: "getTokenInfo",
+    })) as { tokenLogo?: string };
+    if (info?.tokenLogo) return String(info.tokenLogo);
+  } catch {
+    /* not a v2 art token, or RPC miss - fall through to v1 */
+  }
+  try {
+    const logo = (await client.readContract({
+      address: addr,
+      abi: v1TokenAbi,
+      functionName: "logo",
+    })) as string;
+    if (logo) return String(logo);
+  } catch {
+    /* no logo() getter - leave empty */
+  }
+  return "";
+}
+
+/**
+ * Token name/symbol/logo read directly from the token contract on-chain. The
+ * Pons art token is self-describing (name()/symbol() are standard ERC-20; the
+ * logo lives on the contract too), so this resolves brand-new tokens that
+ * Blockscout hasn't indexed yet - which is why the feed used to show a bare
+ * address + $ + default logo. Best-effort per field; never throws.
+ */
+async function onchainTokenMeta(address: string): Promise<TokenMeta | null> {
+  if (!isAddress(address)) return null;
+  const addr = address as Address;
+  const client = ponsClient();
+  const [name, symbol, logo] = await Promise.all([
+    client
+      .readContract({ address: addr, abi: v2TokenAbi, functionName: "name" })
+      .then((v) => String(v ?? ""))
+      .catch(() => ""),
+    client
+      .readContract({ address: addr, abi: v2TokenAbi, functionName: "symbol" })
+      .then((v) => String(v ?? ""))
+      .catch(() => ""),
+    onchainLogo(addr),
+  ]);
+  if (!name && !symbol && !logo) return null;
+  return { name, symbol, logo };
+}
+
+/** Per-token last-good metadata cache key. */
+const tokenMetaKey = (addr: string) => `creo:tokenmeta:${addr.toLowerCase()}`;
+
+/**
+ * Resolve a token's display metadata: on-chain (the source of truth) first,
+ * then Blockscout, then whatever was last cached for this token. Fields are
+ * merged independently and the best result is stored per-token, so a name,
+ * symbol or logo that resolved once never reverts to a bare address on a later
+ * refresh (even if a read momentarily fails). Never throws.
+ */
+async function resolveTokenMeta(address: string): Promise<TokenMeta> {
+  const kv = getKv();
+  const key = tokenMetaKey(address);
+  const [onchain, blockscout, lastGood] = await Promise.all([
+    onchainTokenMeta(address).catch(() => null),
+    blockscoutTokenMeta(address).catch(() => null),
+    kv ? kv.get<TokenMeta>(key).catch(() => null) : Promise.resolve(null),
+  ]);
+
+  const pick = (f: keyof TokenMeta) =>
+    onchain?.[f] || blockscout?.[f] || lastGood?.[f] || "";
+  const meta: TokenMeta = { name: pick("name"), symbol: pick("symbol"), logo: pick("logo") };
+
+  // Persist as this token's last-good whenever it changed and we know something.
+  if (kv && (meta.name || meta.symbol || meta.logo)) {
+    const changed =
+      !lastGood ||
+      lastGood.name !== meta.name ||
+      lastGood.symbol !== meta.symbol ||
+      lastGood.logo !== meta.logo;
+    if (changed) await kv.set(key, meta).catch(() => {});
+  }
+  return meta;
 }
 
 const ONCHAIN_CACHE_KEY = "creo:onchain-feed"; // short TTL fast path
@@ -295,7 +393,7 @@ async function onchainLaunches(limit: number): Promise<LaunchRecord[]> {
     }));
   }
 
-  const metas = await Promise.all(base.map((b) => blockscoutTokenMeta(b.token)));
+  const metas = await Promise.all(base.map((b) => resolveTokenMeta(b.token)));
   const recs: LaunchRecord[] = base.map((b, i) => {
     const m = metas[i];
     return {
@@ -304,9 +402,9 @@ async function onchainLaunches(limit: number): Promise<LaunchRecord[]> {
       version: "v2" as const,
       // Never drop a launch just because metadata is momentarily unavailable -
       // that is what caused the feed to flicker. Fall back to a short address.
-      name: m?.name || `${b.token.slice(0, 6)}…${b.token.slice(-4)}`,
-      symbol: m?.symbol || "",
-      logo: m?.logo || "",
+      name: m.name || `${b.token.slice(0, 6)}…${b.token.slice(-4)}`,
+      symbol: m.symbol || "",
+      logo: m.logo || "",
       deployer: b.deployer,
       txHash: b.txHash,
       createdAt: b.tsMs || 0,
