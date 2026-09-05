@@ -105,10 +105,8 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
       setWarnings(plan.warnings);
 
       // Pre-flight: simulate against the chain to surface the EXACT revert
-      // reason (no gas spent) instead of a mystery failure. This only BLOCKS on
-      // a genuine on-chain revert; a network/RPC error (e.g. the public RPC
-      // rejecting a browser call - "Load failed") is not a revert, so we skip
-      // the pre-flight and let the wallet submit and do its own checks.
+      // reason (no gas spent) instead of a mystery failure. If this passes, the
+      // real transaction will go through.
       if (publicClient) {
         try {
           await publicClient.simulateContract({
@@ -120,13 +118,7 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
             value: plan.value,
           });
         } catch (simErr) {
-          const isRevert =
-            simErr instanceof BaseError &&
-            !!simErr.walk((e) => e instanceof ContractFunctionRevertedError);
-          if (isRevert) {
-            throw new Error("This launch would revert on-chain. Reason: " + revertReason(simErr));
-          }
-          // Network / RPC error: skip pre-flight and continue to the wallet.
+          throw new Error("This launch would revert on-chain. Reason: " + revertReason(simErr));
         }
       }
 
