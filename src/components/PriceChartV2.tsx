@@ -99,7 +99,7 @@ function Chart({ points, quoteSymbol }: { points: Point[]; quoteSymbol: string }
         <path d={line} fill="none" stroke="#e0532a" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
       </svg>
       <p className="mt-1 text-[10px] text-zinc-500">
-        {flat ? "Awaiting first trades - line updates as the curve trades." : `${points.length} curve trades · from on-chain events`}
+        {flat ? "Live price · history builds as the curve trades." : `${points.length} curve trades · from on-chain events`}
       </p>
     </div>
   );

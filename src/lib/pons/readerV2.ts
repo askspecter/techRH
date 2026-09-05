@@ -346,23 +346,28 @@ export async function indexCurveTrades(
   const raw: { block: number; logIndex: number; price: number }[] = [];
   for (let from = start; from <= latest; from += chunk) {
     const to = from + chunk - 1n > latest ? latest : from + chunk - 1n;
-    const [buys, sells] = await Promise.all([
-      client.getLogs({ address: curve, event: v2CurveBuyEvent, fromBlock: from, toBlock: to }),
-      client.getLogs({ address: curve, event: v2CurveSellEvent, fromBlock: from, toBlock: to }),
-    ]);
-    for (const log of buys) {
-      const q = log.args.quoteIn;
-      const t = log.args.tokensOut;
-      if (q == null || t == null || t === 0n) continue;
-      const price = Number(q) / quoteDiv / (Number(t) / tokDiv);
-      if (isFinite(price) && price > 0) raw.push({ block: Number(log.blockNumber ?? 0n), logIndex: Number(log.logIndex ?? 0), price });
-    }
-    for (const log of sells) {
-      const q = log.args.quoteOut;
-      const t = log.args.tokensIn;
-      if (q == null || t == null || t === 0n) continue;
-      const price = Number(q) / quoteDiv / (Number(t) / tokDiv);
-      if (isFinite(price) && price > 0) raw.push({ block: Number(log.blockNumber ?? 0n), logIndex: Number(log.logIndex ?? 0), price });
+    try {
+      const [buys, sells] = await Promise.all([
+        client.getLogs({ address: curve, event: v2CurveBuyEvent, fromBlock: from, toBlock: to }),
+        client.getLogs({ address: curve, event: v2CurveSellEvent, fromBlock: from, toBlock: to }),
+      ]);
+      for (const log of buys) {
+        const q = log.args.quoteIn;
+        const t = log.args.tokensOut;
+        if (q == null || t == null || t === 0n) continue;
+        const price = Number(q) / quoteDiv / (Number(t) / tokDiv);
+        if (isFinite(price) && price > 0) raw.push({ block: Number(log.blockNumber ?? 0n), logIndex: Number(log.logIndex ?? 0), price });
+      }
+      for (const log of sells) {
+        const q = log.args.quoteOut;
+        const t = log.args.tokensIn;
+        if (q == null || t == null || t === 0n) continue;
+        const price = Number(q) / quoteDiv / (Number(t) / tokDiv);
+        if (isFinite(price) && price > 0) raw.push({ block: Number(log.blockNumber ?? 0n), logIndex: Number(log.logIndex ?? 0), price });
+      }
+    } catch {
+      // One flaky chunk shouldn't discard the whole series - keep what we have.
+      // The caller also appends a reliable current-price point from reserves.
     }
     if (from === latest) break;
   }
