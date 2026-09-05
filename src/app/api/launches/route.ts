@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { isAddress, verifyMessage, type Address } from "viem";
+import { isAddress, toEventSelector, verifyMessage, type Address } from "viem";
 import { getKv } from "@/lib/kv";
 import { blockTimestamps, indexV2Launches, readTokenInfoV2 } from "@/lib/pons/readerV2";
-import { indexV1LaunchesRecent, readTokenState } from "@/lib/pons/reader";
+import { PONS_V2 } from "@/lib/pons/registry";
+import { explorerUrl } from "@/lib/chain";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -66,47 +67,95 @@ export async function GET(req: Request) {
   return NextResponse.json({ items });
 }
 
-/** Build feed records from recent on-chain Pons v1 + v2 TokenLaunched events. */
+// v2 TokenLaunched topic0 (types only, in declared order).
+const V2_LAUNCH_TOPIC = toEventSelector(
+  "TokenLaunched(address,address,address,address,uint256,uint256)"
+);
+
+interface RawLaunch {
+  token: Address;
+  curve?: Address;
+  deployer: Address;
+  txHash: `0x${string}`;
+  blockNumber: bigint;
+  tsMs: number;
+}
+
+/** 32-byte indexed topic → 20-byte address. */
+function topicToAddress(t?: string): string {
+  return t && t.length >= 42 ? `0x${t.slice(-40)}` : "";
+}
+
+/**
+ * Recent v2 launches from the factory's logs via Blockscout. The public RPC's
+ * eth_getLogs is unreliable, but Blockscout serves decoded historical logs
+ * reliably (and its egress works in production). Returns [] on any failure so
+ * the caller can fall back to the RPC scan.
+ */
+async function blockscoutV2Launches(limit: number): Promise<RawLaunch[]> {
+  const res = await fetch(`${explorerUrl}/api/v2/addresses/${PONS_V2.factory}/logs`, {
+    cache: "no-store",
+    signal: AbortSignal.timeout(9000),
+    headers: { accept: "application/json" },
+  });
+  if (!res.ok) return [];
+  const data = (await res.json()) as {
+    items?: Array<{ topics?: string[]; transaction_hash?: string; block_number?: number; block_timestamp?: string }>;
+  };
+  const items = Array.isArray(data.items) ? data.items : [];
+  const out: RawLaunch[] = [];
+  for (const it of items) {
+    const topics = it.topics ?? [];
+    if (!topics[0] || topics[0].toLowerCase() !== V2_LAUNCH_TOPIC.toLowerCase()) continue;
+    const token = topicToAddress(topics[1]);
+    if (!isAddress(token)) continue;
+    out.push({
+      token: token as Address,
+      curve: (isAddress(topicToAddress(topics[2])) ? topicToAddress(topics[2]) : undefined) as Address | undefined,
+      deployer: topicToAddress(topics[3]) as Address,
+      txHash: (it.transaction_hash ?? "0x") as `0x${string}`,
+      blockNumber: BigInt(it.block_number ?? 0),
+      tsMs: it.block_timestamp ? Date.parse(it.block_timestamp) : 0,
+    });
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+/** Build feed records from recent on-chain Pons v2 launches (Blockscout first,
+ *  RPC getLogs as a fallback), enriched with token metadata. */
 async function onchainLaunches(limit: number): Promise<LaunchRecord[]> {
-  const [v2, v1] = await Promise.all([
-    indexV2Launches({ limit }).catch(() => []),
-    indexV1LaunchesRecent({ limit }).catch(() => []),
-  ]);
-
-  const [v2infos, v1states, ts] = await Promise.all([
-    Promise.all(v2.map((l) => readTokenInfoV2(l.token).catch(() => null))),
-    Promise.all(v1.map((l) => readTokenState(l.token).catch(() => null))),
-    blockTimestamps([...v2, ...v1].map((l) => Number(l.blockNumber))).catch(() => ({}) as Record<number, number>),
-  ]);
-
-  const recs: LaunchRecord[] = [];
-  v2.forEach((l, i) => {
-    const info = v2infos[i];
-    if (!info?.symbol && !info?.name) return;
-    recs.push({
+  let base = await blockscoutV2Launches(limit).catch(() => []);
+  if (base.length === 0) {
+    const rpc = await indexV2Launches({ limit }).catch(() => []);
+    base = rpc.map((l) => ({
       token: l.token,
       curve: l.curve,
+      deployer: l.deployer,
+      txHash: l.txHash,
+      blockNumber: l.blockNumber,
+      tsMs: 0,
+    }));
+  }
+
+  const infos = await Promise.all(base.map((b) => readTokenInfoV2(b.token).catch(() => null)));
+  const needTs = base.filter((b) => !b.tsMs).map((b) => Number(b.blockNumber));
+  const ts = needTs.length ? await blockTimestamps(needTs).catch(() => ({}) as Record<number, number>) : {};
+
+  const recs: LaunchRecord[] = [];
+  base.forEach((b, i) => {
+    const info = infos[i];
+    if (!info?.symbol && !info?.name) return;
+    recs.push({
+      token: b.token,
+      curve: b.curve,
       version: "v2",
       name: info?.name ?? "",
       symbol: info?.symbol ?? "",
       logo: info?.logo ?? "",
-      deployer: l.deployer,
-      txHash: l.txHash,
-      createdAt: (ts[Number(l.blockNumber)] ?? 0) * 1000,
-    });
-  });
-  v1.forEach((l, i) => {
-    const st = v1states[i];
-    if (!st?.symbol && !st?.name) return;
-    recs.push({
-      token: l.token,
-      version: "v1",
-      name: st?.name ?? "",
-      symbol: st?.symbol ?? "",
-      logo: st?.logo ?? "",
-      deployer: l.deployer,
-      txHash: l.txHash,
-      createdAt: (ts[Number(l.blockNumber)] ?? 0) * 1000,
+      deployer: b.deployer,
+      txHash: b.txHash,
+      createdAt: b.tsMs || (ts[Number(b.blockNumber)] ?? 0) * 1000,
     });
   });
 
