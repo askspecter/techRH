@@ -86,23 +86,15 @@ function topicToAddress(t?: string): string {
   return t && t.length >= 42 ? `0x${t.slice(-40)}` : "";
 }
 
-/**
- * Recent v2 launches from the factory's logs via Blockscout. The public RPC's
- * eth_getLogs is unreliable, but Blockscout serves decoded historical logs
- * reliably (and its egress works in production). Returns [] on any failure so
- * the caller can fall back to the RPC scan.
- */
-async function blockscoutV2Launches(limit: number): Promise<RawLaunch[]> {
-  const res = await fetch(`${explorerUrl}/api/v2/addresses/${PONS_V2.factory}/logs`, {
-    cache: "no-store",
-    signal: AbortSignal.timeout(9000),
-    headers: { accept: "application/json" },
-  });
-  if (!res.ok) return [];
-  const data = (await res.json()) as {
-    items?: Array<{ topics?: string[]; transaction_hash?: string; block_number?: number; block_timestamp?: string }>;
-  };
-  const items = Array.isArray(data.items) ? data.items : [];
+// Addresses that can emit the v2 TokenLaunched event: the factory (direct
+// launchToken) and the launch-and-buy router / deployer (dev-buy launches route
+// through these, so the event may be emitted there instead of the factory).
+const V2_LAUNCH_EMITTERS = [PONS_V2.factory, PONS_V2.launchAndBuy, PONS_V2.launchDeployer];
+
+/** Parse TokenLaunched logs from one Blockscout address-logs response. */
+function parseLaunchLogs(
+  items: Array<{ topics?: string[]; transaction_hash?: string; block_number?: number; block_timestamp?: string }>
+): RawLaunch[] {
   const out: RawLaunch[] = [];
   for (const it of items) {
     const topics = it.topics ?? [];
@@ -117,9 +109,45 @@ async function blockscoutV2Launches(limit: number): Promise<RawLaunch[]> {
       blockNumber: BigInt(it.block_number ?? 0),
       tsMs: it.block_timestamp ? Date.parse(it.block_timestamp) : 0,
     });
-    if (out.length >= limit) break;
   }
   return out;
+}
+
+/**
+ * Recent v2 launches via Blockscout. The public RPC's eth_getLogs is unreliable,
+ * but Blockscout serves decoded historical logs reliably (egress works in
+ * production). Scans every address that can emit TokenLaunched (factory + router
+ * + deployer) so dev-buy launches (routed through launchAndBuy) are included.
+ * Returns [] on failure so the caller can fall back to the RPC scan.
+ */
+async function blockscoutV2Launches(limit: number): Promise<RawLaunch[]> {
+  const perAddr = await Promise.all(
+    V2_LAUNCH_EMITTERS.map(async (addr) => {
+      try {
+        const res = await fetch(`${explorerUrl}/api/v2/addresses/${addr}/logs`, {
+          cache: "no-store",
+          signal: AbortSignal.timeout(9000),
+          headers: { accept: "application/json" },
+        });
+        if (!res.ok) return [] as RawLaunch[];
+        const data = (await res.json()) as { items?: Parameters<typeof parseLaunchLogs>[0] };
+        return parseLaunchLogs(Array.isArray(data.items) ? data.items : []);
+      } catch {
+        return [] as RawLaunch[];
+      }
+    })
+  );
+
+  // Merge, dedupe by token (keep the newest), newest first.
+  const byToken = new Map<string, RawLaunch>();
+  for (const row of perAddr.flat()) {
+    const key = row.token.toLowerCase();
+    const prev = byToken.get(key);
+    if (!prev || row.blockNumber > prev.blockNumber) byToken.set(key, row);
+  }
+  return [...byToken.values()]
+    .sort((a, b) => (b.blockNumber > a.blockNumber ? 1 : b.blockNumber < a.blockNumber ? -1 : 0))
+    .slice(0, limit);
 }
 
 /** Build feed records from recent on-chain Pons v2 launches (Blockscout first,
