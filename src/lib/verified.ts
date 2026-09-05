@@ -4,7 +4,7 @@
  * badge cannot be spoofed by anyone launching a look-alike ticker.
  */
 const OFFICIAL_TOKENS = new Set<string>([
-  "0xc85f085bc6a4ad8b50daf2251deab16189db659b", // $VERBO (official, v2)
+  "0xe612c939d82981f8e17ccac3b59c1084c2aa02bb", // $CREO (official)
 ]);
 
 export function isVerified(address?: string | null): boolean {
