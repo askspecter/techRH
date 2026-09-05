@@ -103,6 +103,37 @@ export async function usableQuoteAssets(
   ];
 }
 
+/**
+ * Check whether a single pasted token address can be used as a v2 pair/quote
+ * asset. Pons only lets you launch against factory-approved pair tokens, so an
+ * un-approved token would revert at launch. Returns the token's symbol/name/
+ * decimals and whether the factory approves it (with usable economics).
+ */
+export async function checkPairToken(
+  asset: Address
+): Promise<{ approved: boolean; symbol: string; name: string; decimals: number }> {
+  const client = ponsClient();
+  const [approvedRaw, economics] = await Promise.all([
+    client.readContract({ address: factory, abi: v2FactoryAbi, functionName: "approvedPairTokens", args: [asset] }) as Promise<boolean>,
+    client.readContract({ address: factory, abi: v2FactoryAbi, functionName: "pairTokenEconomics", args: [asset] }).catch(() => [0n, 0n, 18] as [bigint, bigint, number]),
+  ]);
+  const [phantomQuote, graduationThreshold, decimals] = economics as [bigint, bigint, number];
+  const approved = !!approvedRaw && phantomQuote !== 0n && graduationThreshold !== 0n;
+
+  let symbol = "";
+  let name = "";
+  try {
+    [symbol, name] = await Promise.all([
+      client.readContract({ address: asset, abi: v2TokenAbi, functionName: "symbol" }) as Promise<string>,
+      client.readContract({ address: asset, abi: v2TokenAbi, functionName: "name" }) as Promise<string>,
+    ]);
+  } catch {
+    /* not a readable ERC-20 */
+  }
+
+  return { approved, symbol, name, decimals: Number(decimals) || 18 };
+}
+
 // ── Launch gate + fee + economics pin ───────────────────────────────────────
 
 export async function canLaunch(account: Address): Promise<boolean> {

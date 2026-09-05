@@ -101,6 +101,40 @@ export function LaunchStudio() {
   const [buybackEnabled, setBuybackEnabled] = useState(true);
   const [initialBuyEth, setInitialBuyEth] = useState("");
 
+  // Paste-any-token pair picker (validated live against the Pons factory).
+  const [pastePair, setPastePair] = useState("");
+  const [pairCheck, setPairCheck] = useState<
+    { loading: boolean; error?: string; approved?: boolean; symbol?: string; address?: string } | null
+  >(null);
+
+  useEffect(() => {
+    const a = pastePair.trim();
+    if (!/^0x[0-9a-fA-F]{40}$/.test(a)) {
+      setPairCheck(null);
+      return;
+    }
+    let cancelled = false;
+    setPairCheck({ loading: true });
+    const id = setTimeout(() => {
+      fetch(`/api/v2/pair-check?address=${a}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (cancelled) return;
+          if (d.error) {
+            setPairCheck({ loading: false, error: d.error });
+            return;
+          }
+          setPairCheck({ loading: false, approved: d.approved, symbol: d.symbol, address: d.address });
+          if (d.approved && d.address) setPairToken(d.address as `0x${string}`);
+        })
+        .catch(() => !cancelled && setPairCheck({ loading: false, error: "Couldn't check this token." }));
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(id);
+    };
+  }, [pastePair]);
+
   async function handleLogoUpload(file: File | undefined) {
     if (!file) return;
     setUploadError(null);
@@ -403,8 +437,37 @@ export function LaunchStudio() {
                         <QuoteAssetSelect
                           assets={v2opts.quoteAssets}
                           value={pairToken}
-                          onChange={(a) => setPairToken(a as `0x${string}`)}
+                          onChange={(a) => {
+                            setPairToken(a as `0x${string}`);
+                            setPastePair("");
+                            setPairCheck(null);
+                          }}
                         />
+                      </div>
+
+                      {/* Pair with ANY token: paste a contract address, validated
+                          live against the Pons factory (un-approved tokens revert). */}
+                      <div className="mt-2">
+                        <input
+                          value={pastePair}
+                          onChange={(e) => setPastePair(e.target.value)}
+                          placeholder="or paste any token address (0x...)"
+                          className="field !py-2 font-mono text-xs"
+                          spellCheck={false}
+                        />
+                        {pairCheck?.loading && <p className="mt-1 text-xs text-zinc-500">Checking token on-chain…</p>}
+                        {pairCheck?.error && <p className="mt-1 text-xs text-red-600">{pairCheck.error}</p>}
+                        {pairCheck && !pairCheck.loading && !pairCheck.error && (
+                          pairCheck.approved ? (
+                            <p className="mt-1 text-xs text-green-600">
+                              ✓ Using {pairCheck.symbol ? `$${pairCheck.symbol}` : "this token"} as the pair.
+                            </p>
+                          ) : (
+                            <p className="mt-1 text-xs text-ember-soft">
+                              Not an approved pair on Pons yet, so it can&apos;t be used as a base. Pick an approved asset above.
+                            </p>
+                          )
+                        )}
                       </div>
                     </div>
 
