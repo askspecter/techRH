@@ -94,22 +94,52 @@ export async function getGraduationStatus(
   return { pairedPrincipal, threshold, graduated, progress: Math.min(progress, 1) };
 }
 
+const Q192 = 2n ** 192n;
+const FIXED = 10n ** 36n;
+
 /**
- * Price from the pool's slot0. Token and WETH are both 18 decimals, so no
- * decimal scaling is required. Returns price in WETH; multiply by an ETH/USD
- * oracle for USD (the pons interface uses DeFiLlama).
+ * Convert a pool's sqrtPriceX96 into a token price denominated in WETH.
+ *
+ * Squares in BigInt: `Number(sqrtPriceX96) / 2**96` rounds to 53 bits *before*
+ * squaring, which doubles the relative error and, for the very small prices a
+ * fresh 1e9-supply launch trades at, is the difference between a believable
+ * price and a wrong one. Also scales by the token/WETH decimal difference so a
+ * non-18-decimal token isn't silently mispriced by 10^(18-d).
  */
-export async function getPriceInWeth(pool: Address, isToken0: boolean): Promise<number> {
+export function priceFromSqrt(
+  sqrtPriceX96: bigint,
+  isToken0: boolean,
+  tokenDecimals = 18,
+  wethDecimals = 18
+): number {
+  const sqrt = BigInt(sqrtPriceX96 ?? 0n);
+  if (sqrt <= 0n) return 0;
+  const rawRatioFixed = (sqrt * sqrt * FIXED) / Q192;
+  if (rawRatioFixed === 0n) return 0;
+  const rawRatio = Number(rawRatioFixed) / 1e36;
+  if (!Number.isFinite(rawRatio) || rawRatio === 0) return 0;
+  const base = isToken0 ? rawRatio : 1 / rawRatio;
+  const scaled = base * 10 ** (tokenDecimals - wethDecimals);
+  return Number.isFinite(scaled) && scaled > 0 ? scaled : 0;
+}
+
+/**
+ * Live price from the pool's slot0. Returns price in WETH; multiply by an
+ * ETH/USD oracle for USD (the pons interface uses DeFiLlama). A single reliable
+ * read - no historical log scan.
+ */
+export async function getPriceInWeth(
+  pool: Address,
+  isToken0: boolean,
+  tokenDecimals = 18
+): Promise<number> {
   const client = ponsClient();
   const [sqrtPriceX96] = (await client.readContract({
     address: pool,
     abi: poolAbi,
     functionName: "slot0",
   })) as [bigint, number, number, number, number, number, boolean];
-
-  const ratio = Number(sqrtPriceX96) / 2 ** 96;
-  const token1PerToken0 = ratio * ratio;
-  return isToken0 ? token1PerToken0 : 1 / token1PerToken0;
+  return priceFromSqrt(sqrtPriceX96, isToken0, tokenDecimals);
 }
 
 /** Creator vs protocol fee split, read from the locker resolved off factory. */
@@ -261,14 +291,17 @@ export async function indexPoolSwaps(
   const points: SwapPoint[] = [];
   for (let from = start; from <= latest; from += chunk) {
     const to = from + chunk - 1n > latest ? latest : from + chunk - 1n;
-    const logs = await client.getLogs({ address: pool, event: swapEvent, fromBlock: from, toBlock: to });
-    for (const log of logs) {
-      const sp = log.args.sqrtPriceX96;
-      if (sp == null) continue;
-      const ratio = Number(sp) / 2 ** 96;
-      const token1PerToken0 = ratio * ratio;
-      const priceWeth = isToken0 ? token1PerToken0 : token1PerToken0 === 0 ? 0 : 1 / token1PerToken0;
-      points.push({ block: Number(log.blockNumber ?? 0n), priceWeth });
+    try {
+      const logs = await client.getLogs({ address: pool, event: swapEvent, fromBlock: from, toBlock: to });
+      for (const log of logs) {
+        const sp = log.args.sqrtPriceX96;
+        if (sp == null) continue;
+        const priceWeth = priceFromSqrt(BigInt(sp), isToken0);
+        if (priceWeth > 0) points.push({ block: Number(log.blockNumber ?? 0n), priceWeth });
+      }
+    } catch {
+      // One flaky chunk shouldn't discard the whole series - keep what we have
+      // and move on. The caller also appends a reliable current-price point.
     }
     if (from === latest) break;
   }
