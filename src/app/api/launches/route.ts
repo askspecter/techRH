@@ -40,6 +40,11 @@ export async function GET(req: Request) {
     .map((r) => (typeof r === "string" ? safeParse(r) : r))
     .filter((r): r is LaunchRecord => !!r && isAddress(r.token));
 
+  // Diagnostics: /api/launches?debug=1 reports why the feed is (or isn't) empty.
+  if (searchParams.get("debug")) {
+    return NextResponse.json(await debugDiagnostics(!!kv, all.length));
+  }
+
   // Single-token lookup (used as an image/metadata fallback on the token page).
   if (token && isAddress(token)) {
     const item = all.find((r) => r.token.toLowerCase() === token.toLowerCase()) ?? null;
@@ -71,6 +76,53 @@ export async function GET(req: Request) {
 const V2_LAUNCH_TOPIC = toEventSelector(
   "TokenLaunched(address,address,address,address,uint256,uint256)"
 );
+
+/**
+ * Diagnostic report for the feed. Shows KV status and, for every candidate
+ * emitter, whether Blockscout is reachable, how many logs it returned, how many
+ * matched the launch topic, and a sample of the topic0 values found (so a
+ * mismatched event signature or emitter address is obvious).
+ */
+async function debugDiagnostics(kvConfigured: boolean, kvCount: number) {
+  const expectedTopic = V2_LAUNCH_TOPIC.toLowerCase();
+  const emitters = await Promise.all(
+    V2_LAUNCH_EMITTERS.map(async (addr) => {
+      const url = `${explorerUrl}/api/v2/addresses/${addr}/logs`;
+      try {
+        const res = await fetch(url, {
+          cache: "no-store",
+          signal: AbortSignal.timeout(9000),
+          headers: { accept: "application/json" },
+        });
+        const body = res.ok ? ((await res.json()) as { items?: Array<{ topics?: string[] }> }) : null;
+        const list = Array.isArray(body?.items) ? body!.items! : [];
+        const topic0s = Array.from(new Set(list.map((it) => (it.topics ?? [])[0]).filter(Boolean)));
+        const matches = list.filter((it) => (it.topics ?? [])[0]?.toLowerCase() === expectedTopic).length;
+        return { address: addr, httpStatus: res.status, totalLogs: list.length, launchMatches: matches, topic0sSeen: topic0s.slice(0, 8) };
+      } catch (err) {
+        return { address: addr, error: err instanceof Error ? err.message : "fetch failed" };
+      }
+    })
+  );
+
+  let onchainCount = 0;
+  let onchainError: string | null = null;
+  try {
+    onchainCount = (await onchainLaunches(18)).length;
+  } catch (err) {
+    onchainError = err instanceof Error ? err.message : "failed";
+  }
+
+  return {
+    explorerUrl,
+    expectedLaunchTopic: V2_LAUNCH_TOPIC,
+    kvConfigured,
+    kvCount,
+    emitters,
+    onchainCount,
+    onchainError,
+  };
+}
 
 interface RawLaunch {
   token: Address;
