@@ -59,7 +59,28 @@ export async function generateLaunchPackage(idea: string): Promise<LaunchPackage
   const provider = pickProvider();
   const obj =
     provider === "bankr" ? await callBankr(idea) : await callAnthropic(idea);
-  return launchPackageSchema.parse(obj);
+  return stripDashes(launchPackageSchema.parse(obj));
+}
+
+/**
+ * Deterministic safety net: the prompt already forbids em/en dashes, but no
+ * model obeys 100% of the time, so we strip any that slip through. Every
+ * em-dash (U+2014) and en-dash (U+2013) in generated copy becomes a plain
+ * hyphen, recursively across all string fields.
+ */
+function stripDashes<T>(value: T): T {
+  if (typeof value === "string") {
+    return value.replace(/[—–]/g, "-") as unknown as T;
+  }
+  if (Array.isArray(value)) {
+    return value.map((v) => stripDashes(v)) as unknown as T;
+  }
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value)) out[k] = stripDashes(v);
+    return out as T;
+  }
+  return value;
 }
 
 /* ── Bankr LLM Gateway (OpenAI-compatible) ───────────────────────────────── */
