@@ -229,7 +229,7 @@ export function LaunchStudio() {
           <Step n="02" title="Your AI launch package" className="animate-fade-up">
             <div className="flex items-start gap-4">
               <div className="flex flex-col items-center gap-2">
-                <div className="relative h-24 w-24">
+                <div className="glow-ring relative h-24 w-24">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={logo}
@@ -501,7 +501,7 @@ function Reveal({ title, children }: { title: string; children: React.ReactNode 
   );
 }
 
-/** Cinematic "cooking" reel - a scanning frame + staged captions. */
+/** Cinematic "cooking" reel - a rendering screen with scanline, sweep, and staged captions. */
 function CookingReel() {
   const [pct, setPct] = useState(8);
   useEffect(() => {
@@ -510,37 +510,52 @@ function CookingReel() {
     }, 460);
     return () => clearInterval(id);
   }, []);
-  const label = COOK_STEPS[Math.min(COOK_STEPS.length - 1, Math.floor((pct / 100) * COOK_STEPS.length))];
+  const idx = Math.min(COOK_STEPS.length - 1, Math.floor((pct / 100) * COOK_STEPS.length));
+  const label = COOK_STEPS[idx];
 
   return (
-    <section className="card overflow-hidden p-5">
-      <div className="mb-4 flex items-center gap-3">
-        <span className="step-badge animate-glow-pulse">✦</span>
-        <h2 className="font-display text-lg font-bold text-zinc-900">Rolling the reel…</h2>
+    <section className="card animate-fade-up overflow-hidden p-4 sm:p-5">
+      {/* The screen */}
+      <div className="reel-screen flex aspect-[16/7] w-full items-center justify-center">
+        <div className="reel-aurora" aria-hidden />
+        <div className="reel-grid" aria-hidden />
+        <div className="reel-sweep" aria-hidden />
+        <div className="reel-scan" aria-hidden />
+
+        {/* Corner HUD */}
+        <div className="absolute left-4 top-3 flex items-center gap-2">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-[#f2b134] shadow-[0_0_10px_#f2b134]" />
+          <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/70">Rendering</span>
+        </div>
+        <div className="absolute right-4 top-3 font-mono text-[11px] font-bold text-white/80">{pct}%</div>
+
+        {/* Center caption */}
+        <div className="relative z-10 flex flex-col items-center px-6 text-center">
+          <span className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-lg text-white shadow-[0_0_24px_rgba(242,177,52,0.5)] backdrop-blur-sm">
+            <span className="inline-block animate-spin" style={{ animationDuration: "3.5s" }}>✦</span>
+          </span>
+          <p key={label} className="caption-in font-display text-lg font-bold text-white sm:text-xl">
+            {label}…
+          </p>
+          <p className="mt-1 text-[11px] text-white/60">CREO is composing your launch package</p>
+        </div>
       </div>
 
-      <div className="relative h-2 w-full overflow-hidden rounded-full bg-black/[0.05]">
+      {/* Progress + step ticks */}
+      <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-black/[0.06]">
         <div
           className="h-full rounded-full transition-[width] duration-500"
-          style={{ width: `${pct}%`, background: "linear-gradient(90deg,#f2b134,#e0532a)" }}
+          style={{ width: `${pct}%`, background: "linear-gradient(90deg,#f2b134,#ec7a2c,#dd3b22)" }}
         />
       </div>
-      <div className="mt-3 flex items-center justify-between">
-        <p className="animate-pulse text-xs text-zinc-600">{label}…</p>
-        <span className="font-mono text-sm font-bold text-zinc-900">{pct}%</span>
-      </div>
-
-      <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-6">
-        {COOK_STEPS.map((s, i) => {
-          const done = (pct / 100) * COOK_STEPS.length > i;
-          return (
-            <div
-              key={s}
-              className={`h-1.5 rounded-full transition ${done ? "bg-pink" : "bg-black/[0.1]"}`}
-              title={s}
-            />
-          );
-        })}
+      <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-9">
+        {COOK_STEPS.map((s, i) => (
+          <div
+            key={s}
+            className={`h-1.5 rounded-full transition-all duration-500 ${i <= idx ? "bg-pink" : "bg-black/[0.1]"}`}
+            title={s}
+          />
+        ))}
       </div>
     </section>
   );

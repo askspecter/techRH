@@ -79,6 +79,94 @@
   background: linear-gradient(90deg, transparent, rgba(224, 83, 42, 0.5), transparent);
 }
 
+/* ── Cinematic "reel" screen (used while the AI cooks) ─────────────────────── */
+.reel-screen {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  background:
+    radial-gradient(120% 120% at 50% -10%, rgba(242, 177, 52, 0.25), transparent 55%),
+    radial-gradient(120% 140% at 50% 120%, rgba(224, 83, 42, 0.35), transparent 55%),
+    linear-gradient(180deg, #1a0e08, #2a1608 60%, #3a1a0c);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 30px 80px -40px rgba(224, 83, 42, 0.6);
+}
+/* Slow drifting sunset aurora inside the screen. */
+.reel-aurora {
+  position: absolute;
+  inset: -30%;
+  background:
+    radial-gradient(30% 40% at 30% 40%, rgba(242, 177, 52, 0.5), transparent 60%),
+    radial-gradient(35% 45% at 70% 60%, rgba(224, 83, 42, 0.5), transparent 60%),
+    radial-gradient(30% 40% at 50% 80%, rgba(109, 148, 160, 0.35), transparent 60%);
+  filter: blur(20px);
+  animation: reelDrift 9s ease-in-out infinite alternate;
+}
+/* A bright light bar sweeping diagonally, like a scanning render pass. */
+.reel-sweep {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 40%, rgba(255, 240, 214, 0.28) 50%, transparent 60%);
+  transform: translateX(-100%);
+  animation: reelSweep 2.4s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+}
+/* A thin glowing scanline travelling top to bottom. */
+.reel-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 233, 200, 0.9), transparent);
+  box-shadow: 0 0 14px 2px rgba(242, 177, 52, 0.6);
+  animation: reelScanY 2.8s linear infinite;
+}
+/* Faint film-grid texture overlay. */
+.reel-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(120% 100% at 50% 50%, #000 40%, transparent 85%);
+  -webkit-mask-image: radial-gradient(120% 100% at 50% 50%, #000 40%, transparent 85%);
+}
+
+/* Animated conic glow ring around the freshly generated token art. */
+.glow-ring::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 1.15rem;
+  background: conic-gradient(from 0deg, #f2b134, #e0532a, #dd3b22, #6d94a0, #f2b134);
+  filter: blur(6px);
+  opacity: 0.85;
+  z-index: -1;
+  animation: spinRing 6s linear infinite;
+}
+
+@keyframes reelSweep {
+  0% { transform: translateX(-100%); }
+  60%, 100% { transform: translateX(100%); }
+}
+@keyframes reelScanY {
+  0% { top: -4%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 104%; opacity: 0; }
+}
+@keyframes reelDrift {
+  0% { transform: translate3d(-4%, -3%, 0) scale(1.05); }
+  100% { transform: translate3d(4%, 3%, 0) scale(1.15); }
+}
+@keyframes spinRing {
+  to { transform: rotate(360deg); }
+}
+@keyframes captionIn {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.caption-in { animation: captionIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
 @layer components {
   /* Frosted glass card */
   .card {

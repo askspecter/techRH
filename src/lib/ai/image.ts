@@ -14,26 +14,32 @@ import { generateFallbackLogo } from "./avatar";
 
 export type ImageStyle = "icon" | "photo";
 
+const NO_TEXT = "No text, no letters, no words, no numbers, no watermark, no signature, no frame, no border.";
+
 export function buildImagePrompt(style: ImageStyle, ticker: string, description: string): string {
   const subject = description?.trim() || `a crypto token called $${ticker}`;
   if (style === "photo") {
     return (
-      `Photorealistic, cinematic promotional key art. Subject: ${subject}. ` +
-      `Dramatic studio lighting, rich depth of field, hyper-detailed, 4k, ` +
-      `vibrant accent lighting, premium and bold. No text, no watermark, no logo.`
+      `INSANE, hyper-cinematic promotional key art - like a blockbuster movie poster. ` +
+      `Subject: ${subject}. ` +
+      `Epic dramatic composition, volumetric god-ray lighting, glowing neon rim light, ` +
+      `swirling atmosphere with drifting embers and particles, subtle lens flares, ` +
+      `rich bokeh and deep depth of field, ultra-detailed hyperreal 8k octane/unreal render, ` +
+      `bold saturated cinematic color grade, high dynamic range, dramatic sense of scale and motion, ` +
+      `awe-inspiring, larger than life, jaw-dropping. Warm sunset accents (amber, orange, deep red) ` +
+      `with cool teal shadows for contrast. ${NO_TEXT}`
     );
   }
-  // Icon: a clean, modern, simple logo/mascot that MATCHES the description.
+  // Icon: a bold, ultra-glossy emblem/mascot that MATCHES the description.
   return (
-    `Design a clean, modern, minimal logo for a crypto token. ` +
-    `Subject (make the logo clearly about this): ${subject}. ` +
-    `Style: a single centered icon - either a cute glossy mascot character or a bold ` +
-    `symbolic emblem, whichever best fits the subject. Flat vector illustration, ` +
-    `thick clean outlines, smooth simple shapes, tasteful gradients, soft rim light, ` +
-    `vibrant but balanced colors, strong readable silhouette, lots of padding, ` +
-    `plain solid or soft radial background, sticker/app-icon look. ` +
-    `Professional brand-quality, simple and tidy, instantly recognizable at small sizes. ` +
-    `No text, no letters, no words, no numbers, no watermark, no signature, no frame, no border.`
+    `An insanely cool, ultra-glossy crypto token emblem that stops the scroll. ` +
+    `Subject (make it unmistakably about this): ${subject}. ` +
+    `A single bold centered 3D mascot character or symbolic emblem, whichever fits best. ` +
+    `Thick clean outlines, glossy iridescent materials, dramatic studio rim lighting, ` +
+    `subtle inner glow and energetic accent sparks, punchy high-contrast colors, ` +
+    `strong readable silhouette, generous padding, plain soft radial background, ` +
+    `premium sticker / app-icon look. Playful yet high-end, instantly iconic and ` +
+    `crisp even at small sizes. ${NO_TEXT}`
   );
 }
 
