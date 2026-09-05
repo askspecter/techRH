@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAddress, toEventSelector, verifyMessage, type Address } from "viem";
 import { getKv } from "@/lib/kv";
-import { blockTimestamps, indexV2Launches, readTokenInfoV2 } from "@/lib/pons/readerV2";
+import { indexV2Launches } from "@/lib/pons/readerV2";
 import { PONS_V2 } from "@/lib/pons/registry";
 import { explorerUrl } from "@/lib/chain";
 
@@ -227,9 +227,39 @@ async function blockscoutV2Launches(limit: number): Promise<RawLaunch[]> {
     .slice(0, limit);
 }
 
-/** Build feed records from recent on-chain Pons v2 launches (Blockscout first,
- *  RPC getLogs as a fallback), enriched with token metadata. */
+/** Token name/symbol/logo from Blockscout (reliable, no RPC). */
+async function blockscoutTokenMeta(
+  address: string
+): Promise<{ name: string; symbol: string; logo: string } | null> {
+  try {
+    const res = await fetch(`${explorerUrl}/api/v2/tokens/${address}`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(7000),
+      headers: { accept: "application/json" },
+    });
+    if (!res.ok) return null;
+    const d = (await res.json()) as { name?: string; symbol?: string; icon_url?: string };
+    return { name: d.name ?? "", symbol: d.symbol ?? "", logo: d.icon_url ?? "" };
+  } catch {
+    return null;
+  }
+}
+
+const ONCHAIN_CACHE_KEY = "creo:onchain-feed";
+
+/**
+ * Build feed records from recent on-chain Pons v2 launches (Blockscout logs,
+ * RPC getLogs as a last resort). Metadata comes from Blockscout too (not the
+ * flaky public RPC), and the assembled list is cached briefly in KV, so the feed
+ * is STABLE across refreshes instead of flickering when an RPC read fails.
+ */
 async function onchainLaunches(limit: number): Promise<LaunchRecord[]> {
+  const kv = getKv();
+  if (kv) {
+    const cached = await kv.get<LaunchRecord[]>(ONCHAIN_CACHE_KEY).catch(() => null);
+    if (cached && Array.isArray(cached) && cached.length > 0) return cached.slice(0, limit);
+  }
+
   let base = await blockscoutV2Launches(limit).catch(() => []);
   if (base.length === 0) {
     const rpc = await indexV2Launches({ limit }).catch(() => []);
@@ -243,28 +273,29 @@ async function onchainLaunches(limit: number): Promise<LaunchRecord[]> {
     }));
   }
 
-  const infos = await Promise.all(base.map((b) => readTokenInfoV2(b.token).catch(() => null)));
-  const needTs = base.filter((b) => !b.tsMs).map((b) => Number(b.blockNumber));
-  const ts = needTs.length ? await blockTimestamps(needTs).catch(() => ({}) as Record<number, number>) : {};
-
-  const recs: LaunchRecord[] = [];
-  base.forEach((b, i) => {
-    const info = infos[i];
-    if (!info?.symbol && !info?.name) return;
-    recs.push({
+  const metas = await Promise.all(base.map((b) => blockscoutTokenMeta(b.token)));
+  const recs: LaunchRecord[] = base.map((b, i) => {
+    const m = metas[i];
+    return {
       token: b.token,
       curve: b.curve,
-      version: "v2",
-      name: info?.name ?? "",
-      symbol: info?.symbol ?? "",
-      logo: info?.logo ?? "",
+      version: "v2" as const,
+      // Never drop a launch just because metadata is momentarily unavailable -
+      // that is what caused the feed to flicker. Fall back to a short address.
+      name: m?.name || `${b.token.slice(0, 6)}…${b.token.slice(-4)}`,
+      symbol: m?.symbol || "",
+      logo: m?.logo || "",
       deployer: b.deployer,
       txHash: b.txHash,
-      createdAt: b.tsMs || (ts[Number(b.blockNumber)] ?? 0) * 1000,
-    });
+      createdAt: b.tsMs || 0,
+    };
   });
 
-  return recs.sort((a, b) => b.createdAt - a.createdAt).slice(0, limit);
+  const sorted = recs.sort((a, b) => b.createdAt - a.createdAt).slice(0, limit);
+  if (kv && sorted.length > 0) {
+    await kv.set(ONCHAIN_CACHE_KEY, sorted, { ex: 45 }).catch(() => {});
+  }
+  return sorted;
 }
 
 /** POST /api/launches - record a launch made through CREO. */
