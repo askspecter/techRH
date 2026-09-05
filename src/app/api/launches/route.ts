@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { isAddress, toEventSelector, verifyMessage, type Address } from "viem";
+import { isAddress, parseEventLogs, toEventSelector, verifyMessage, type Address } from "viem";
 import { getKv } from "@/lib/kv";
 import { indexV2Launches } from "@/lib/pons/readerV2";
 import { ponsClient } from "@/lib/pons/reader";
-import { tokenAbi as v1TokenAbi } from "@/lib/pons/abis";
-import { v2TokenAbi } from "@/lib/pons/abisV2";
+import { tokenAbi as v1TokenAbi, tokenLaunchedEvent as v1TokenLaunchedEvent } from "@/lib/pons/abis";
+import { v2TokenAbi, v2TokenLaunchedEvent } from "@/lib/pons/abisV2";
 import { PONS_V1, PONS_V2 } from "@/lib/pons/registry";
 import { explorerUrl } from "@/lib/chain";
 
@@ -29,8 +29,12 @@ export interface LaunchRecord {
   createdAt: number;
 }
 
-/** GET /api/launches?limit=48 - newest CREO launches (from KV, with an
- *  on-chain fallback so launches still show when KV isn't configured). */
+/** GET /api/launches?limit=48 - newest CREO launches, recorded in KV when a
+ *  token is launched through CREO. The feed shows ONLY these (plus the official
+ *  token, pinned client-side): tokens launched elsewhere on the same Pons
+ *  factories are intentionally not surfaced. Any record missing its
+ *  name/symbol/logo is backfilled from on-chain so it never shows as a bare
+ *  address. */
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const limit = Math.min(Math.max(Number(searchParams.get("limit") ?? 48), 1), 100);
@@ -50,29 +54,44 @@ export async function GET(req: Request) {
 
   // Single-token lookup (used as an image/metadata fallback on the token page).
   if (token && isAddress(token)) {
-    const item = all.find((r) => r.token.toLowerCase() === token.toLowerCase()) ?? null;
+    const found = all.find((r) => r.token.toLowerCase() === token.toLowerCase()) ?? null;
+    const item = found ? await backfillMeta(found) : null;
     return NextResponse.json({ item });
   }
 
-  let items = all
+  const items = all
     .filter((r) => (version === "v1" || version === "v2" ? r.version === version : true))
     .slice(0, limit);
 
-  // Fallback: when KV has no records (e.g. not configured, or launches weren't
-  // recorded), index recent launches straight from the Pons factories on-chain
-  // (v1 + v2) so tokens still appear in the feed. Best-effort; never throws.
-  if (items.length === 0) {
-    try {
-      const onchain = await onchainLaunches(Math.min(limit, 18));
-      items = onchain
-        .filter((r) => (version === "v1" || version === "v2" ? r.version === version : true))
-        .slice(0, limit);
-    } catch {
-      items = [];
-    }
-  }
+  // Backfill any record whose name/symbol/logo is missing (e.g. it was recorded
+  // before metadata was available). Records that already have all three are
+  // returned untouched, so this costs no RPC in the common case.
+  const enriched = await Promise.all(items.map(backfillMeta));
 
-  return NextResponse.json({ items });
+  return NextResponse.json({ items: enriched });
+}
+
+/** Placeholder used when a name is really just a shortened address. */
+function isAddressPlaceholder(name: string): boolean {
+  return /^0x[0-9a-fA-F]{4}/.test(name) && name.includes("…");
+}
+
+/**
+ * Fill in a launch record's name/symbol/logo from on-chain when any is missing
+ * (or the name is only a shortened address). Complete records pass straight
+ * through with no network call.
+ */
+async function backfillMeta(r: LaunchRecord): Promise<LaunchRecord> {
+  const nameOk = !!r.name && !isAddressPlaceholder(r.name);
+  if (nameOk && r.symbol && r.logo) return r;
+  const m = await resolveTokenMeta(r.token).catch(() => null);
+  if (!m) return r;
+  return {
+    ...r,
+    name: nameOk ? r.name : m.name || r.name,
+    symbol: r.symbol || m.symbol,
+    logo: r.logo || m.logo,
+  };
 }
 
 // v2 TokenLaunched topic0 (types only, in declared order).
@@ -186,6 +205,31 @@ async function resolveLaunchFromTx(txHash: string): Promise<{ token: string; cur
     return { token, curve: isAddress(curve) ? curve : undefined };
   }
   return null;
+}
+
+/**
+ * Resolve the launched token (and curve) from a transaction receipt via RPC,
+ * parsing the v2/v1 TokenLaunched events. This is the reliable path when
+ * Blockscout is unavailable (e.g. rate-limited / 403), so a CREO launch still
+ * gets recorded even if the browser couldn't read the receipt itself.
+ */
+async function resolveLaunchFromTxRpc(txHash: string): Promise<{ token: string; curve?: string } | null> {
+  try {
+    const receipt = await ponsClient().getTransactionReceipt({ hash: txHash as `0x${string}` });
+    const logs = [
+      ...parseEventLogs({ abi: [v2TokenLaunchedEvent], logs: receipt.logs }),
+      ...parseEventLogs({ abi: [v1TokenLaunchedEvent], logs: receipt.logs }),
+    ];
+    for (const l of logs) {
+      const args = l.args as { token?: string; curve?: string };
+      if (args?.token && isAddress(args.token)) {
+        return { token: args.token, curve: args.curve && isAddress(args.curve) ? args.curve : undefined };
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /** Parse TokenLaunched logs from one Blockscout address-logs response. */
@@ -452,7 +496,10 @@ export async function POST(req: Request) {
   let curveAddr = body.curve && isAddress(body.curve) ? (body.curve as string) : "";
   const txHash = String(body.txHash ?? "");
   if (!tokenAddr && /^0x[0-9a-fA-F]{64}$/.test(txHash)) {
-    const resolved = await resolveLaunchFromTx(txHash).catch(() => null);
+    // Prefer RPC (works even when Blockscout is rate-limited/403), then fall
+    // back to Blockscout's decoded logs.
+    const resolved =
+      (await resolveLaunchFromTxRpc(txHash)) ?? (await resolveLaunchFromTx(txHash).catch(() => null));
     if (resolved) {
       tokenAddr = resolved.token;
       curveAddr = curveAddr || resolved.curve || "";
