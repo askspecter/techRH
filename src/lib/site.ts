@@ -18,7 +18,7 @@ export const SITE = {
  * outside the app, so it is surfaced explicitly.)
  */
 export const OFFICIAL_TOKEN = {
-  address: "0xe612c939d82981F8e17CCAC3b59c1084c2Aa02Bb",
+  address: "0xe078416ABc381000079C6Db0c7Bc9f03591e792f",
   name: "CREO",
   symbol: "CREO",
   logo: "/creo-logo.jpg",
