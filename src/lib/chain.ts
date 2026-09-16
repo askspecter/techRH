@@ -15,9 +15,10 @@ const parsedChainId = Number(env("NEXT_PUBLIC_CHAIN_ID", String(DEFAULT_CHAIN_ID
 const CHAIN_ID =
   Number.isInteger(parsedChainId) && parsedChainId > 0 ? parsedChainId : DEFAULT_CHAIN_ID;
 
-// Arc's public RPC (used by o1's own bot, no key). Override with a paid RPC via
-// NEXT_PUBLIC_RPC_URL in production.
-const RPC_URL = env("NEXT_PUBLIC_RPC_URL", "https://rpc.arc-scan.org");
+// Arc public RPC. drpc answers reads (eth_call) and broadcasts reliably;
+// rpc.arc-scan.org fails eth_call, which left on-chain reads (e.g. the burn
+// total) stale. Override with a paid RPC via NEXT_PUBLIC_RPC_URL in production.
+const RPC_URL = env("NEXT_PUBLIC_RPC_URL", "https://arc.drpc.org");
 const EXPLORER_URL = env("NEXT_PUBLIC_EXPLORER_URL", "https://arc-scan.org");
 
 /**

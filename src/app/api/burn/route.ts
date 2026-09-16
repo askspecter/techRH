@@ -24,11 +24,16 @@ const BURN_ADDRESSES = (process.env.BURN_ADDRESSES || "0x00000000000000000000000
   .map((a) => getAddress(a));
 const CREO = getAddress(OFFICIAL_TOKEN.address);
 
-// thirdweb answers eth_call reliably; arc-scan is a backup. A paid RPC set via
-// NEXT_PUBLIC_RPC_URL is tried first.
-const RPCS = [process.env.NEXT_PUBLIC_RPC_URL, "https://5042.rpc.thirdweb.com", "https://rpc.arc-scan.org"].filter(
-  (u): u is string => Boolean(u && u.trim()),
-);
+// Reliable Arc read RPCs first (drpc/tenderly/arc.io answer eth_call; thirdweb
+// rate-limits and arc-scan fails reads). A paid RPC via NEXT_PUBLIC_RPC_URL wins.
+const RPCS = [
+  process.env.NEXT_PUBLIC_RPC_URL,
+  "https://arc.drpc.org",
+  "https://arc.gateway.tenderly.co",
+  "https://rpc.mainnet.arc.io",
+  "https://5042.rpc.thirdweb.com",
+  "https://rpc.arc-scan.org",
+].filter((u): u is string => Boolean(u && u.trim()));
 
 const TTL_MS = 30_000;
 let lastGood: { burned: number; supply: number } | null = null;
