@@ -180,7 +180,6 @@ export function TokenDashboard({ address }: { address: string }) {
                 </div>
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1.5">
-                <span className="chip uppercase">{version}</span>
                 <PairedWithChip pairToken={v2 ? v2.pairToken : undefined} />
               </div>
             </div>

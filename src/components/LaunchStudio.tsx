@@ -213,7 +213,7 @@ export function LaunchStudio() {
             value={idea}
             onChange={(e) => setIdea(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && idea.trim().length >= 3 && generate()}
-            placeholder="e.g. a cat coin that day-trades NVDA from the couch"
+            placeholder="e.g. a cat coin that trades memes from the couch"
             className="w-full rounded-xl border border-ink-line bg-white/80 px-4 py-3.5 text-base text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-transparent"
           />
         </div>
@@ -531,11 +531,11 @@ const COOK_STEPS = [
   "Spinning the lore",
   "Drafting the thread",
   "Cooking memes",
-  "Picking v1 or v2",
+  "Prepping the Arc launch",
 ];
 
 const ROULETTE_IDEAS = [
-  "a cat coin that day-trades NVDA stock from the couch",
+  "a cat coin that day-trades memes from the couch",
   "a dog that thinks it is a hedge fund manager",
   "a coffee bean that never sleeps and shorts the market",
   "an AI toaster that gives financial advice nobody asked for",

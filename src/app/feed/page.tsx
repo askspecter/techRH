@@ -84,7 +84,6 @@ export default function FeedPage() {
                   </p>
                   <p className="font-mono text-xs text-zinc-500">${it.symbol}</p>
                 </div>
-                <span className="chip ml-auto">{it.version}</span>
               </div>
 
               <div className="mt-4 flex items-center justify-between text-xs text-zinc-500">

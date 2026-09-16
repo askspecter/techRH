@@ -192,7 +192,6 @@ export default function ProfilePage() {
                   <div className="relative aspect-square bg-black/[0.03]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={it.logo || "/creo-logo.jpg"} alt={it.symbol} className="h-full w-full object-cover" />
-                    <span className="chip absolute left-2 top-2 bg-white/80">{it.version}</span>
                   </div>
                   <div className="p-3">
                     <p className="truncate font-display font-bold text-zinc-900">{it.name}</p>

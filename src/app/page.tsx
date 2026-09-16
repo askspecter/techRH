@@ -134,11 +134,6 @@ export default function HomePage() {
             value={sort}
             onChange={(v) => setSort(v as Sort)}
           />
-          <Segmented
-            options={[["all", "All"], ["v1", "v1"], ["v2", "v2"]]}
-            value={ver}
-            onChange={(v) => setVer(v as Ver)}
-          />
         </div>
 
         {/* Grid */}
@@ -171,7 +166,6 @@ export default function HomePage() {
                     alt={it.symbol}
                     className="h-full w-full object-cover"
                   />
-                  <span className="chip absolute left-2 top-2 bg-white/80">{it.version}</span>
                 </div>
                 <div className="p-3">
                   <p className="flex items-center gap-1 truncate font-display font-bold text-zinc-900">

@@ -2,7 +2,7 @@
 
 **CREO** turns one sentence into a complete, launch-ready token and deploys it to
 **[o1.exchange](https://ponsfamily.com)** (the launchpad on Arc). AI drafts the whole package,
-you pick the launch model — **v1 or v2** — then **deploy in one click** through the o1.exchange contracts.
+then **deploy in one click** through the o1.exchange contracts on Arc.
 Non-custodial: every transaction is signed by your own wallet.
 
 > CREO is a third-party interface to the o1.exchange protocol, not an official o1.exchange product. Not financial advice.
