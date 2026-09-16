@@ -80,11 +80,39 @@ export async function prepareArcLaunch(input: LaunchInput, account: Address): Pr
     throw new Error("Live factory token deployer differs from the configured o1 Arc deployer — refusing to launch.");
   }
 
+  // Pin the ERC-7572 metadata document to o1's Pinata (server-side, via o1's
+  // Public API) so o1.exchange shows the logo/description/links. Falls back to
+  // the plain logo URL when no O1_API_KEY is configured or pinning fails —
+  // the launch still works, but o1's pages stay blank until a key is set.
+  let tokenContractURI = input.imageUri ?? "";
+  try {
+    const res = await fetch("/api/o1/prepare-metadata", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: input.name,
+        symbol: input.ticker,
+        description: input.description,
+        logo: input.imageUri,
+        website: input.website,
+        x: input.twitter,
+        telegram: input.telegram,
+        creator,
+      }),
+    });
+    const j = (await res.json()) as { metadataUri?: string | null; reason?: string };
+    if (j.metadataUri) tokenContractURI = j.metadataUri;
+    else if (j.reason === "no_api_key") warnings.push("o1 metadata pinning is not configured (set O1_API_KEY) — o1.exchange may show this token without a logo/description.");
+    else warnings.push("Couldn't pin metadata to o1 this time — o1.exchange may show this token blank until it's re-pinned.");
+  } catch {
+    warnings.push("Couldn't reach the metadata pinner — launching without o1-hosted metadata.");
+  }
+
   const deadline = block.timestamp + DEADLINE_SECONDS;
   const base: Omit<O1LaunchParams, "creatorSalt"> = {
     tokenName: input.name.trim(),
     tokenSymbol: input.ticker.trim(),
-    tokenContractURI: input.imageUri ?? "",
+    tokenContractURI,
     quoteToken,
     expectedConfigVersion: state.configVersion,
     deadline,

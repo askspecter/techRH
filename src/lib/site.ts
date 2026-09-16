@@ -34,6 +34,7 @@ export const OFFICIAL_TOKEN: {
 export const NAV = [
   { href: "/feed", label: "Explore" },
   { href: "/create", label: "Create" },
+  { href: "/burn", label: "Burn" },
   { href: "/analytics", label: "Analytics" },
   { href: "/profile", label: "Profile" },
   { href: "/docs", label: "Docs" },
