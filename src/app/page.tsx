@@ -7,7 +7,8 @@ import { AssetLogo } from "@/components/AssetLogo";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { isVerified } from "@/lib/verified";
 
-const RWA = ["ETH", "USDG", "NVDA", "AAPL", "TSLA", "HOOD", "COIN", "META", "AMZN", "MSFT", "GOOGL", "SPY"];
+// Arc focuses on stable settlement, so USDC is the featured quote asset.
+const RWA = ["USDC"];
 
 interface LaunchRecord {
   token: string;

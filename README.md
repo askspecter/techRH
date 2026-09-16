@@ -13,7 +13,7 @@ Non-custodial: every transaction is signed by your own wallet.
 - **AI image generation:** regenerate the token art on demand in two styles — **Icon** (clean logo) or **Photo** (photorealistic, cinematic) — or upload your own.
 - **Pick v1 / v2** with an AI recommendation:
   - **v1 — Instant Pool:** one tx deploys the token + a locked **Uniswap V3** pool (WETH). Tradable at once. Open, no whitelist.
-  - **v2 — Bonding Curve:** fair launch that **graduates to Uniswap V4**. Supports RWA pairs (ETH/USDG/NVDA/AAPL/HOOD…). Creators paid in ETH.
+  - **v2 — Bonding Curve:** fair launch that **graduates to Uniswap V4**. Settles against **USDC** (Arc focuses on stable) plus native **ETH**. Creators paid in ETH.
 - **On-chain ticker collision check** before you deploy.
 - **Non-custodial** — `wagmi` + `viem` + RainbowKit; the user's wallet signs.
 

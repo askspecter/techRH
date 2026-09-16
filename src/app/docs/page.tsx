@@ -69,12 +69,11 @@ export default function DocsPage() {
         </p>
       </Section>
 
-      <Section id="rwa" title="RWA quote pairs">
+      <Section id="rwa" title="Quote pairs">
         <p>
-          v2 can pair your token against tokenized real-world assets on {SITE.chain}, alongside ETH and
-          USDG, so a launch can settle against names like NVDA, AAPL, TSLA, HOOD, COIN, META, AMZN,
-          MSFT, GOOGL and SPY. Only assets the factory has approved on-chain are offered, and native
-          ETH is always available.
+          {SITE.chain} focuses on stable settlement, so v2 pairs your token against USDC, alongside
+          native ETH. Only assets the factory has approved on-chain are offered, and native ETH is
+          always available.
         </p>
       </Section>
 
