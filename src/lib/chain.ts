@@ -10,31 +10,44 @@ function env(name: string, fallback: string): string {
   return v && v.trim() ? v.trim() : fallback;
 }
 
-const DEFAULT_CHAIN_ID = 4663;
+const DEFAULT_CHAIN_ID = 5042; // Arc mainnet (Circle)
 const parsedChainId = Number(env("NEXT_PUBLIC_CHAIN_ID", String(DEFAULT_CHAIN_ID)));
 const CHAIN_ID =
   Number.isInteger(parsedChainId) && parsedChainId > 0 ? parsedChainId : DEFAULT_CHAIN_ID;
 
-const RPC_URL = env("NEXT_PUBLIC_RPC_URL", "https://rpc.mainnet.chain.robinhood.com");
-const EXPLORER_URL = env("NEXT_PUBLIC_EXPLORER_URL", "https://robinhoodchain.blockscout.com");
+// Arc's public RPC (used by o1's own bot, no key). Override with a paid RPC via
+// NEXT_PUBLIC_RPC_URL in production.
+const RPC_URL = env("NEXT_PUBLIC_RPC_URL", "https://rpc.arc-scan.org");
+const EXPLORER_URL = env("NEXT_PUBLIC_EXPLORER_URL", "https://arc-scan.org");
 
 /**
- * Arc - verified network parameters.
- *  - Chain ID: 4663
- *  - Native currency: ETH
- *  - L2 built on Arbitrum Orbit
+ * Arc mainnet (Circle) - the chain the o1 launchpad runs on.
+ *  - Chain ID: 5042
+ *  - Native gas currency: USDC (18-decimal native units; the ERC-20 view is
+ *    6 decimals). Everything the app denominates in "native" (launch fee, gas)
+ *    is USDC here, which is why the native symbol is USDC, not ETH.
+ *  - Uniswap v4 pools.
+ *
+ * Source: docs.o1.exchange/launchpad/reference and o1's production config.
  */
-export const robinhoodChain = defineChain({
+export const arcChain = defineChain({
   id: CHAIN_ID,
   name: "Arc",
-  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  nativeCurrency: { name: "USD Coin", symbol: "USDC", decimals: 18 },
   rpcUrls: {
     default: { http: [RPC_URL] },
   },
   blockExplorers: {
-    default: { name: "Blockscout", url: EXPLORER_URL },
+    default: { name: "Arcscan", url: EXPLORER_URL },
   },
 });
+
+/**
+ * Backwards-compatible alias. The app was originally wired to a chain exported
+ * as `robinhoodChain`; it now points at Arc. Kept so the many `robinhoodChain`
+ * imports keep working without a churn-heavy rename.
+ */
+export const robinhoodChain = arcChain;
 
 export const explorerUrl = EXPLORER_URL;
 

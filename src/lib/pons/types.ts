@@ -2,14 +2,14 @@
 export type PonsVersion = "v1" | "v2";
 
 /**
- * Quote assets.
- *  - v1 supports WETH only.
- *  - v2 adds RWA pairs (USDG, NVDA, AAPL, HOOD).
+ * Quote assets. On Arc (o1 launchpad) the only registered quote is USDC, which
+ * matches Arc's stable-settlement focus. The older tickers are retained in the
+ * union so historical data and the AI schema keep type-checking.
  */
-export type QuoteAsset = "ETH" | "USDG" | "NVDA" | "AAPL" | "HOOD";
+export type QuoteAsset = "USDC" | "ETH" | "USDG" | "NVDA" | "AAPL" | "HOOD";
 
-export const V1_QUOTE_ASSETS: QuoteAsset[] = ["ETH"];
-export const V2_QUOTE_ASSETS: QuoteAsset[] = ["ETH", "USDG", "NVDA", "AAPL", "HOOD"];
+export const V1_QUOTE_ASSETS: QuoteAsset[] = ["USDC"];
+export const V2_QUOTE_ASSETS: QuoteAsset[] = ["USDC"];
 
 /** The user-facing form that feeds a launch, regardless of version. */
 export interface LaunchInput {
