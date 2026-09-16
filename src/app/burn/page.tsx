@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPublicClient, erc20Abi, formatUnits, getAddress, http } from "viem";
+import { getAddress } from "viem";
 import { OFFICIAL_TOKEN, SITE } from "@/lib/site";
-import { arcChain, explorerToken } from "@/lib/chain";
+import { explorerToken } from "@/lib/chain";
 
 /**
  * Live $CREO buyback & burn.
@@ -55,10 +55,10 @@ export default function BurnPage() {
     return () => clearInterval(id);
   }, []);
 
-  // Live $CREO market (DexScreener) + real on-chain burned balance (dead wallet).
+  // Live $CREO market (DexScreener) + real burned balance (dead wallet). Both
+  // read server-side so a flaky/CORS-blocked public RPC never blanks the page.
   useEffect(() => {
     mounted.current = true;
-    const client = createPublicClient({ chain: arcChain, transport: http() });
 
     const loadMarket = () =>
       fetch(`/api/token/market?address=${CREO}`)
@@ -69,19 +69,14 @@ export default function BurnPage() {
         })
         .catch(() => {});
 
-    const loadBurn = async () => {
-      try {
-        const [dead, supply, decimals] = await Promise.all([
-          client.readContract({ address: CREO, abi: erc20Abi, functionName: "balanceOf", args: [DEAD] }),
-          client.readContract({ address: CREO, abi: erc20Abi, functionName: "totalSupply" }),
-          client.readContract({ address: CREO, abi: erc20Abi, functionName: "decimals" }),
-        ]);
-        if (mounted.current)
-          setBurn({ burned: Number(formatUnits(dead as bigint, decimals as number)), supply: Number(formatUnits(supply as bigint, decimals as number)) });
-      } catch {
-        /* RPC hiccup — leave as null */
-      }
-    };
+    const loadBurn = () =>
+      fetch("/api/burn")
+        .then((r) => r.json())
+        .then((d: { burned?: number | null; supply?: number | null }) => {
+          if (mounted.current && (d.burned != null || d.supply != null))
+            setBurn({ burned: d.burned ?? null, supply: d.supply ?? null });
+        })
+        .catch(() => {});
 
     loadMarket();
     loadBurn();
