@@ -189,6 +189,8 @@ export function LaunchStudio() {
     description,
     imageUri: logo,
     quoteAsset,
+    // Optional atomic dev buy, in USDC (Arc's gas + quote asset).
+    initialBuyEth: initialBuyEth && Number(initialBuyEth) > 0 ? initialBuyEth : undefined,
     twitter,
     telegram,
   };
@@ -364,6 +366,20 @@ export function LaunchStudio() {
                 </span>
               </div>
             )}
+
+            <label className="mb-3 block text-sm text-zinc-700">
+              Dev buy (optional)
+              <div className="mt-1 flex items-center gap-2">
+                <input
+                  value={initialBuyEth}
+                  onChange={(e) => setInitialBuyEth(e.target.value.replace(/[^0-9.]/g, ""))}
+                  placeholder="0.0"
+                  inputMode="decimal"
+                  className="w-32 rounded-xl border border-ink-line bg-white/70 px-3 py-2 font-mono text-sm outline-none focus:border-rose/60"
+                />
+                <span className="text-xs text-zinc-500">USDC — buy your own token in the same tx</span>
+              </div>
+            </label>
 
             <DeployButton input={launchInput} disabled={!name || ticker.length < 2} />
             <a href="/feed" className="mt-3 block text-xs text-zinc-500 transition hover:text-rose">

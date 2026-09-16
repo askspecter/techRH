@@ -14,6 +14,14 @@ export type O1LaunchParams = {
   metadataValues: readonly string[];
 };
 
+/** The `LaunchBuyParams` tuple for the atomic dev buy (createLaunchAndBuy). */
+export type O1LaunchBuyParams = {
+  fundingToken: Address;
+  amountIn: bigint;
+  minAmountOut: bigint;
+  routeData: Hex;
+};
+
 /** Live, mutually-consistent factory config read at one block. */
 export type FactoryState = {
   configVersion: bigint;

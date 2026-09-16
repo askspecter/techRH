@@ -32,6 +32,12 @@ export const ARC = {
   },
   /** o1 requires the launched token address to end in this byte. */
   tokenAddressSuffix: 1,
+  /**
+   * Arc converts a native-USDC buy amount to 6-decimal USDC and reverts on
+   * anything finer than 1e12 native (18-dec) units, so a dev-buy amount must be
+   * a multiple of this. (config/o1.json → chains.arc.swapX.nativeUsdcScale)
+   */
+  nativeUsdcScale: 1_000_000_000_000n,
 } as const;
 
 export type ArcContracts = typeof ARC.contracts;
