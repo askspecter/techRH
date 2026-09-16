@@ -33,13 +33,13 @@ export default function DocsPage() {
             ["Pitch it in a line", "Type one sentence describing your idea. That is the only required input."],
             ["AI drafts the package", "You get a name, ticker, logo, description, lore, a ready-to-post X thread and meme prompts, plus a recommended launch model."],
             ["Review and edit", "Everything is editable, tweak the name, ticker, image (regenerate as an icon or a photo, or upload your own), socials and launch settings."],
-            ["Deploy to Pons", "One signed transaction from your wallet launches the token straight onto the Pons protocol. It then shows up in Explore."],
+            ["Deploy to o1.exchange", "One signed transaction from your wallet launches the token straight onto the o1.exchange protocol. It then shows up in Explore."],
           ]}
         />
       </Section>
 
       <Section id="models" title="Launch models: v1 vs v2">
-        <p>Pons offers two launch models. The AI recommends one, but you always choose.</p>
+        <p>o1.exchange offers two launch models. The AI recommends one, but you always choose.</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <Card title="v1 · Instant Pool" chip="open">
             <ul className="mt-2 space-y-1.5">

@@ -65,8 +65,8 @@ export class PonsV1Adapter implements LaunchStrategy {
       value,
       summary:
         devBuy > 0n
-          ? `Deploy "${input.name}" ($${input.ticker}) via Pons v1 + dev buy ${input.initialBuyEth} ETH.`
-          : `Deploy "${input.name}" ($${input.ticker}) via Pons v1 → Uniswap V3 pool (WETH).`,
+          ? `Deploy "${input.name}" ($${input.ticker}) via o1.exchange v1 + dev buy ${input.initialBuyEth} ETH.`
+          : `Deploy "${input.name}" ($${input.ticker}) via o1.exchange v1 → Uniswap V3 pool (WETH).`,
       warnings: [],
     };
   }

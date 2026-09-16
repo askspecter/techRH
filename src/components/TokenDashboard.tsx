@@ -253,14 +253,14 @@ export function TokenDashboard({ address }: { address: string }) {
                 <p className="mt-1 text-xs text-zinc-500">
                   This launch filled its bonding curve and now trades as a permanently locked
                   Uniswap V4 pool. The chart above shows its bonding-curve history; live V4 trading
-                  runs on Pons.
+                  runs on o1.exchange.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <a className="btn-brand" href={explorerToken(v2.token)} target="_blank" rel="noreferrer">
                     View token on explorer →
                   </a>
                   <a className="btn-ghost" href="https://ponsfamily.com" target="_blank" rel="noreferrer">
-                    Trade on Pons (V4)
+                    Trade on o1.exchange (V4)
                   </a>
                 </div>
               </section>

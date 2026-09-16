@@ -46,8 +46,8 @@ export class PonsV2Adapter implements LaunchStrategy {
     const allowed = await canLaunch(account).catch(() => null);
     if (allowed === false) {
       warnings.push(
-        "This wallet is not on the Pons v2 whitelist, so the launch will revert on-chain " +
-          "(only gas is spent). Ask Pons to whitelist this address, use the wallet that has " +
+        "This wallet is not on the o1.exchange v2 whitelist, so the launch will revert on-chain " +
+          "(only gas is spent). Ask o1.exchange to whitelist this address, use the wallet that has " +
           "launched before, or launch with v1 (open, no whitelist)."
       );
     }
@@ -109,7 +109,7 @@ export class PonsV2Adapter implements LaunchStrategy {
         // params, configId, pairToken, quoteIn, minTokensOut, recipient, exemptions
         args: [routerParams, launchConfigId, pairToken, initialBuy, 0n, account, []],
         value: fee + initialBuy, // native: fee + buy travel together
-        summary: `Launch "${input.name}" ($${input.ticker}) + buy ${input.initialBuyEth} ETH in one tx (Pons v2).`,
+        summary: `Launch "${input.name}" ($${input.ticker}) + buy ${input.initialBuyEth} ETH in one tx (o1.exchange v2).`,
         warnings,
       };
     }
@@ -122,7 +122,7 @@ export class PonsV2Adapter implements LaunchStrategy {
       // the verified on-chain launch). The 3-arg form reverts.
       args: [params, launchConfigId, pairToken, []],
       value: fee, // launch fee sent as value (native pair)
-      summary: `Launch "${input.name}" ($${input.ticker}) via Pons v2 → bonding curve (quote ${quoteLabel}).`,
+      summary: `Launch "${input.name}" ($${input.ticker}) via o1.exchange v2 → bonding curve (quote ${quoteLabel}).`,
       warnings,
     };
   }

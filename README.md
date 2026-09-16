@@ -1,11 +1,11 @@
 # 🌅 CREO — cinematic AI launchpad
 
 **CREO** turns one sentence into a complete, launch-ready token and deploys it to
-**[Pons](https://ponsfamily.com)** (the launchpad on Arc). AI drafts the whole package,
-you pick the launch model — **v1 or v2** — then **deploy in one click** through the Pons contracts.
+**[o1.exchange](https://ponsfamily.com)** (the launchpad on Arc). AI drafts the whole package,
+you pick the launch model — **v1 or v2** — then **deploy in one click** through the o1.exchange contracts.
 Non-custodial: every transaction is signed by your own wallet.
 
-> CREO is a third-party interface to the Pons protocol, not an official Pons product. Not financial advice.
+> CREO is a third-party interface to the o1.exchange protocol, not an official o1.exchange product. Not financial advice.
 
 ## ✨ What it does
 
@@ -19,7 +19,7 @@ Non-custodial: every transaction is signed by your own wallet.
 
 ## 🧠 What's CREO vs. the engine
 
-CREO reuses a proven **launch engine** (the Pons v1/v2 adapters, AI generation, on-chain readers,
+CREO reuses a proven **launch engine** (the o1.exchange v1/v2 adapters, AI generation, on-chain readers,
 and API routes) and wraps it in a brand-new **cinematic UI** built from scratch — a warm cream
 canvas, a gold→orange→red sunset signature gradient (sampled from the CREO logo), hairline glass,
 and a staged "reel" while the AI cooks.

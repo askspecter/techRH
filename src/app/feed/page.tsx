@@ -42,7 +42,7 @@ export default function FeedPage() {
         <p className="eyebrow">Live</p>
         <h1 className="mt-2 font-display text-4xl font-bold text-zinc-900">The feed</h1>
         <p className="mt-2 max-w-xl text-sm text-zinc-600">
-          Tokens launched through CREO, newest first. Every one deployed straight to Pons.
+          Tokens launched through CREO, newest first. Every one deployed straight to o1.exchange.
         </p>
       </div>
 

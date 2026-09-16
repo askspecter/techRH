@@ -21,7 +21,7 @@ export async function GET(req: Request) {
   try {
     const [record, info] = await Promise.all([getLaunchedTokenV2(token), readTokenInfoV2(token)]);
     if (!record.exists) {
-      return NextResponse.json({ error: "No Pons v2 launch found for this token." }, { status: 404 });
+      return NextResponse.json({ error: "No o1.exchange v2 launch found for this token." }, { status: 404 });
     }
 
     // Curve state only matters while still on the curve (phase 0).

@@ -234,7 +234,7 @@ export function LaunchStudio() {
         </h1>
         <p className="mt-2 max-w-xl text-sm text-zinc-600">
           One sentence becomes a full launch package. Edit anything, pick the model, and deploy to
-          Pons, all signed by your own wallet.
+          o1.exchange, all signed by your own wallet.
         </p>
       </div>
 
@@ -464,7 +464,7 @@ export function LaunchStudio() {
                             </p>
                           ) : (
                             <p className="mt-1 text-xs text-ember-soft">
-                              Not an approved pair on Pons yet, so it can&apos;t be used as a base. Pick an approved asset above.
+                              Not an approved pair on o1.exchange yet, so it can&apos;t be used as a base. Pick an approved asset above.
                             </p>
                           )
                         )}
@@ -487,7 +487,7 @@ export function LaunchStudio() {
           </Step>
 
           {/* Step 4 - deploy */}
-          <Step n="04" title="Deploy to Pons" className="animate-fade-up">
+          <Step n="04" title="Deploy to o1.exchange" className="animate-fade-up">
             {isConnected && (
               <div className="mb-3 flex items-center justify-between rounded-xl border border-ink-line bg-white/60 px-3 py-2 text-xs">
                 <span className="text-zinc-500">Wallet balance</span>

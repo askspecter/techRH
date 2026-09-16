@@ -3,12 +3,12 @@ export const SITE = {
   name: "CREO",
   tagline: "One line in. A token out.",
   description:
-    "Cinematic AI launchpad. Describe a token in one sentence, watch the full launch package render, and deploy to Pons on Arc, non-custodial.",
+    "Cinematic AI launchpad. Describe a token in one sentence, watch the full launch package render, and deploy to o1.exchange on Arc, non-custodial.",
   x: "https://x.com/creodotfamily",
   xHandle: "@creodotfamily",
   company: "CREO",
   chain: "Arc",
-  poweredBy: "Pons",
+  poweredBy: "o1.exchange",
 } as const;
 
 /**
