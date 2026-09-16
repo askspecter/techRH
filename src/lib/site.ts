@@ -17,13 +17,19 @@ export const SITE = {
  * (The feed itself only indexes app-launches from KV; this token was minted
  * outside the app, so it is surfaced explicitly.)
  */
-export const OFFICIAL_TOKEN = {
+export const OFFICIAL_TOKEN: {
+  address: string;
+  name: string;
+  symbol: string;
+  logo: string;
+  version: "v1" | "v2";
+} = {
   address: "",
   name: "",
   symbol: "",
   logo: "/creo-logo.jpg",
-  version: "v2" as const,
-} as const;
+  version: "v2",
+};
 
 export const NAV = [
   { href: "/feed", label: "Explore" },
