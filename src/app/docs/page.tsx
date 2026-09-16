@@ -31,42 +31,33 @@ export default function DocsPage() {
         <Steps
           items={[
             ["Pitch it in a line", "Type one sentence describing your idea. That is the only required input."],
-            ["AI drafts the package", "You get a name, ticker, logo, description, lore, a ready-to-post X thread and meme prompts, plus a recommended launch model."],
+            ["AI drafts the package", "You get a name, ticker, logo, description, lore, a ready-to-post X thread and meme prompts — ready to deploy."],
             ["Review and edit", "Everything is editable, tweak the name, ticker, image (regenerate as an icon or a photo, or upload your own), socials and launch settings."],
             ["Deploy to o1.exchange", "One signed transaction from your wallet launches the token straight onto the o1.exchange protocol. It then shows up in Explore."],
           ]}
         />
       </Section>
 
-      <Section id="models" title="Launch models: v1 vs v2">
-        <p>o1.exchange offers two launch models. The AI recommends one, but you always choose.</p>
+      <Section id="models" title="How launches work">
+        <p>Every launch on {SITE.chain} goes through o1&apos;s launchpad in one transaction — there is no v1/v2 choice to make.</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <Card title="v1 · Instant Pool" chip="open">
+          <Card title="One signed transaction" chip="o1 · Arc">
             <ul className="mt-2 space-y-1.5">
-              <li>· One tx deploys the token + a Uniswap V3 pool</li>
-              <li>· Pool is locked immediately, quoted in WETH</li>
-              <li>· Tradable from block one</li>
-              <li>· Fixed supply, 1% pool fee</li>
-              <li>· Flat 0.0005 ETH launch fee</li>
-              <li>· Open to everyone, no whitelist</li>
+              <li>· Deploys a fixed-supply ERC-20 (no mint / pause / blacklist / tax)</li>
+              <li>· Creates a Uniswap v4 pool, quoted in USDC</li>
+              <li>· Liquidity is permanently locked</li>
+              <li>· Tradable straight away</li>
             </ul>
           </Card>
-          <Card title="v2 · Bonding Curve" chip="RWA pairs">
+          <Card title="Flat, transparent cost" chip="USDC">
             <ul className="mt-2 space-y-1.5">
-              <li>· Fair launch on a bonding curve</li>
-              <li>· Graduates into a locked Uniswap V4 pool</li>
-              <li>· Pair vs ETH or tokenized stocks</li>
-              <li>· Creators are paid in ETH</li>
-              <li>· Optional protocol buyback</li>
-              <li>· May be whitelist-gated while in audit</li>
+              <li>· Flat 2 USDC creation fee, read live from the factory</li>
+              <li>· USDC is the settlement asset (Arc&apos;s stable focus)</li>
+              <li>· Gas is paid in USDC (Arc&apos;s native currency)</li>
+              <li>· Non-custodial: your wallet signs everything</li>
             </ul>
           </Card>
         </div>
-        <p className="mt-4">
-          <b>Which should I pick?</b> Choose v1 when immediate tradability matters. Choose v2 for a
-          fair launch, or when your theme maps to a real-world asset (a markets or stocks angle pairs
-          nicely with an RWA quote asset).
-        </p>
       </Section>
 
       <Section id="rwa" title="Quote pairs">
@@ -88,9 +79,9 @@ export default function DocsPage() {
 
       <Section id="fees" title="Fees">
         <p>
-          v1 charges a flat <b>0.0005 ETH</b> launch fee plus a 1% pool fee on trades. v2 reads its
-          launch fee live from the factory at deploy time and shows it before you sign. {SITE.name}{" "}
-          itself does not add a surcharge, you only pay the protocol fee and network gas.
+          Launching costs a flat <b>2 USDC</b> creation fee, read live from the o1 factory at deploy
+          time. {SITE.name} itself does not add a surcharge — you only pay that protocol fee and
+          network gas (also paid in USDC on {SITE.chain}).
         </p>
       </Section>
 
@@ -115,9 +106,8 @@ export default function DocsPage() {
       <Section id="faq" title="FAQ">
         <Faq q="Do I need to code?" a="No. One sentence is enough; the AI drafts everything and you deploy with one signed transaction." />
         <Faq q="Does CREO hold my tokens or funds?" a="No. It is fully non-custodial. Your wallet signs and submits every transaction directly to the chain." />
-        <Faq q="Which chain is this?" a={`${SITE.chain}. Add it to your wallet and make sure you have ETH for gas and fees.`} />
-        <Faq q="Can I edit what the AI generates?" a="Yes, name, ticker, description, image, socials and launch settings are all editable before you deploy." />
-        <Faq q="Why is v2 sometimes restricted?" a="v2 public launches can be whitelist-gated while audits are in progress. The studio surfaces this before you sign." />
+        <Faq q="Which chain is this?" a={`${SITE.chain} (Circle). Add it to your wallet and keep some USDC for the launch fee and gas — USDC is Arc's native currency.`} />
+        <Faq q="Can I edit what the AI generates?" a="Yes, name, ticker, description, image and socials are all editable before you deploy." />
       </Section>
 
       <div className="mt-12 flex flex-wrap gap-3">
@@ -132,7 +122,7 @@ export default function DocsPage() {
 const TOC = [
   ["overview", "Overview"],
   ["how-it-works", "How it works"],
-  ["models", "v1 vs v2"],
+  ["models", "How launches work"],
   ["rwa", "RWA pairs"],
   ["ai-images", "AI images"],
   ["fees", "Fees"],

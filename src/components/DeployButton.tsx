@@ -211,7 +211,7 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
       ? "Reading on-chain…"
       : status === "signing"
         ? "Sign in your wallet…"
-        : `Deploy · ${input.version.toUpperCase()}`;
+        : "Deploy · o1 on Arc";
 
   return (
     <div className="space-y-2">

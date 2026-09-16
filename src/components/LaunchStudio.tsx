@@ -3,10 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAccount, useBalance } from "wagmi";
 import { formatEther, zeroAddress } from "viem";
-import { VersionSelector } from "./VersionSelector";
-import { QuoteAssetSelect } from "./QuoteAssetSelect";
 import { DeployButton } from "./DeployButton";
-import { allVersionInfo, type LaunchInput, type PonsVersion, type QuoteAsset } from "@/lib/pons";
+import { type LaunchInput } from "@/lib/pons";
 import type { LaunchPackage } from "@/lib/ai/schema";
 import { uploadLogo } from "@/lib/upload";
 import { robinhoodChain } from "@/lib/chain";
@@ -37,7 +35,6 @@ interface V2Options {
 }
 
 export function LaunchStudio() {
-  const versions = useMemo(() => allVersionInfo(), []);
   const { address, isConnected } = useAccount();
   // Read the wallet's native balance on Arc explicitly, so the
   // deploy step shows the real balance regardless of the wallet's active chain.
@@ -56,8 +53,9 @@ export function LaunchStudio() {
   const [name, setName] = useState("");
   const [ticker, setTicker] = useState("");
   const [description, setDescription] = useState("");
-  const [version, setVersion] = useState<PonsVersion>("v2");
-  const [quoteAsset, setQuoteAsset] = useState<QuoteAsset>("ETH");
+  // Arc has a single launch path (o1 launchpad), quoted in USDC — no v1/v2 choice.
+  const version = "v2" as const;
+  const quoteAsset = "USDC" as const;
   const [logo, setLogo] = useState("");
   const [twitter, setTwitter] = useState("");
   const [telegram, setTelegram] = useState("");
@@ -173,8 +171,6 @@ export function LaunchStudio() {
       setName(r.package.name);
       setTicker(r.package.ticker);
       setDescription(r.package.description);
-      setVersion(r.package.recommendation.version);
-      setQuoteAsset(r.package.recommendation.quoteAsset);
       setLogo(r.logo);
       // The package is shown instantly with a placeholder logo; fetch the real
       // AI image in the background so it never delays the flow.
@@ -186,30 +182,6 @@ export function LaunchStudio() {
     }
   }
 
-  useEffect(() => {
-    if (version !== "v2" || !result) return;
-    let cancelled = false;
-    setV2loading(true);
-    const q = address ? `?address=${address}` : "";
-    fetch(`/api/v2/launch-options${q}`)
-      .then((r) => r.json())
-      .then((data: V2Options & { error?: string }) => {
-        if (cancelled || data.error) return;
-        setV2opts(data);
-        if (data.configs[0]) setLaunchConfigId(Number(data.configs[0].id));
-      })
-      .catch(() => {})
-      .finally(() => !cancelled && setV2loading(false));
-    return () => {
-      cancelled = true;
-    };
-  }, [version, result, address]);
-
-  function pickVersion(v: PonsVersion) {
-    setVersion(v);
-    if (v === "v1") setPairToken(zeroAddress);
-  }
-
   const launchInput: LaunchInput = {
     version,
     name,
@@ -217,10 +189,6 @@ export function LaunchStudio() {
     description,
     imageUri: logo,
     quoteAsset,
-    pairToken,
-    launchConfigId,
-    buybackEnabled,
-    initialBuyEth: initialBuyEth && Number(initialBuyEth) > 0 ? initialBuyEth : undefined,
     twitter,
     telegram,
   };
@@ -233,8 +201,8 @@ export function LaunchStudio() {
           Type it. <span className="grad-text">Launch it.</span>
         </h1>
         <p className="mt-2 max-w-xl text-sm text-zinc-600">
-          One sentence becomes a full launch package. Edit anything, pick the model, and deploy to
-          o1.exchange, all signed by your own wallet.
+          One sentence becomes a full launch package. Edit anything and deploy to o1.exchange on
+          Arc, all signed by your own wallet.
         </p>
       </div>
 
@@ -386,108 +354,8 @@ export function LaunchStudio() {
             </Reveal>
           </Step>
 
-          {/* Step 3 - model */}
-          <Step n="03" title="Choose a launch model" className="animate-fade-up">
-            <VersionSelector
-              versions={versions}
-              selected={version}
-              recommended={result.package.recommendation.version}
-              onSelect={pickVersion}
-            />
-
-            {version === "v2" && (
-              <div className="mt-4 space-y-4 rounded-xl border border-ink-line bg-white/60 p-4">
-                {v2loading && !v2opts && (
-                  <p className="text-xs text-zinc-500">Loading options from the factory…</p>
-                )}
-
-                {v2opts && (
-                  <>
-                    {Number(v2opts.launchFee) > 0 && (
-                      <p className="text-xs text-zinc-600">
-                        Launch fee:{" "}
-                        <span className="font-mono text-zinc-900">{formatEther(BigInt(v2opts.launchFee))} ETH</span>
-                      </p>
-                    )}
-
-                    {v2opts.configs.length > 0 && (
-                      <div>
-                        <label className="text-sm text-zinc-700">Launch config</label>
-                        <div className="mt-2 space-y-1.5">
-                          {v2opts.configs.map((c) => (
-                            <label key={c.id} className="flex cursor-pointer items-center gap-2 text-xs text-zinc-600">
-                              <input
-                                type="radio"
-                                name="cfg"
-                                className="accent-rose"
-                                checked={launchConfigId === Number(c.id)}
-                                onChange={() => setLaunchConfigId(Number(c.id))}
-                              />
-                              #{c.id} · supply {formatCompact(c.supply)} · graduates ~
-                              {formatEther(BigInt(c.graduationThreshold))} · pool fee {c.poolFee}
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div>
-                      <label className="text-sm text-zinc-700">Paired asset</label>
-                      <div className="mt-2">
-                        <QuoteAssetSelect
-                          assets={v2opts.quoteAssets}
-                          value={pairToken}
-                          onChange={(a) => {
-                            setPairToken(a as `0x${string}`);
-                            setPastePair("");
-                            setPairCheck(null);
-                          }}
-                        />
-                      </div>
-
-                      {/* Pair with ANY token: paste a contract address, validated
-                          live against the Pons factory (un-approved tokens revert). */}
-                      <div className="mt-2">
-                        <input
-                          value={pastePair}
-                          onChange={(e) => setPastePair(e.target.value)}
-                          placeholder="or paste any token address (0x...)"
-                          className="field !py-2 font-mono text-xs"
-                          spellCheck={false}
-                        />
-                        {pairCheck?.loading && <p className="mt-1 text-xs text-zinc-500">Checking token on-chain…</p>}
-                        {pairCheck?.error && <p className="mt-1 text-xs text-red-600">{pairCheck.error}</p>}
-                        {pairCheck && !pairCheck.loading && !pairCheck.error && (
-                          pairCheck.approved ? (
-                            <p className="mt-1 text-xs text-green-600">
-                              ✓ Using {pairCheck.symbol ? `$${pairCheck.symbol}` : "this token"} as the pair.
-                            </p>
-                          ) : (
-                            <p className="mt-1 text-xs text-ember-soft">
-                              Not an approved pair on o1.exchange yet, so it can&apos;t be used as a base. Pick an approved asset above.
-                            </p>
-                          )
-                        )}
-                      </div>
-                    </div>
-
-                    <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-700">
-                      <input
-                        type="checkbox"
-                        className="accent-rose"
-                        checked={buybackEnabled}
-                        onChange={(e) => setBuybackEnabled(e.target.checked)}
-                      />
-                      Enable buyback (protocol buys back &amp; locks supply)
-                    </label>
-                  </>
-                )}
-              </div>
-            )}
-          </Step>
-
-          {/* Step 4 - deploy */}
-          <Step n="04" title="Deploy to o1.exchange" className="animate-fade-up">
+          {/* Step 3 - deploy */}
+          <Step n="03" title="Deploy to o1.exchange" className="animate-fade-up">
             {isConnected && (
               <div className="mb-3 flex items-center justify-between rounded-xl border border-ink-line bg-white/60 px-3 py-2 text-xs">
                 <span className="text-zinc-500">Wallet balance</span>
@@ -496,20 +364,6 @@ export function LaunchStudio() {
                 </span>
               </div>
             )}
-
-            <label className="mb-3 block text-sm text-zinc-700">
-              Dev buy (optional)
-              <div className="mt-1 flex items-center gap-2">
-                <input
-                  value={initialBuyEth}
-                  onChange={(e) => setInitialBuyEth(e.target.value.replace(/[^0-9.]/g, ""))}
-                  placeholder="0.0"
-                  inputMode="decimal"
-                  className="w-32 rounded-xl border border-ink-line bg-white/70 px-3 py-2 font-mono text-sm outline-none focus:border-rose/60"
-                />
-                <span className="text-xs text-zinc-500">ETH - buy your own token at launch</span>
-              </div>
-            </label>
 
             <DeployButton input={launchInput} disabled={!name || ticker.length < 2} />
             <a href="/feed" className="mt-3 block text-xs text-zinc-500 transition hover:text-rose">
