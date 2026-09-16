@@ -96,6 +96,9 @@ export function LaunchStudio() {
   const [v2loading, setV2loading] = useState(false);
   const [launchConfigId, setLaunchConfigId] = useState(0);
   const [pairToken, setPairToken] = useState<`0x${string}`>(zeroAddress);
+  // Paired assets the o1 Arc factory currently accepts (USDC now; cirBTC and
+  // future assets light up automatically once o1 registers them on-chain).
+  const [quotes, setQuotes] = useState<{ symbol: string; address: `0x${string}`; registered: boolean; note: string }[]>([]);
   const [buybackEnabled, setBuybackEnabled] = useState(true);
   const [initialBuyEth, setInitialBuyEth] = useState("");
 
@@ -182,6 +185,18 @@ export function LaunchStudio() {
     }
   }
 
+  useEffect(() => {
+    fetch("/api/o1/quotes")
+      .then((r) => r.json())
+      .then((d: { quotes?: { symbol: string; address: string; registered: boolean; note: string }[] }) => {
+        const list = (d.quotes ?? []).map((q) => ({ ...q, address: q.address as `0x${string}` }));
+        setQuotes(list);
+        const firstReg = list.find((q) => q.registered);
+        if (firstReg) setPairToken(firstReg.address);
+      })
+      .catch(() => {});
+  }, []);
+
   const launchInput: LaunchInput = {
     version,
     name,
@@ -189,6 +204,7 @@ export function LaunchStudio() {
     description,
     imageUri: logo,
     quoteAsset,
+    pairToken,
     // Optional atomic dev buy, in USDC (Arc's gas + quote asset).
     initialBuyEth: initialBuyEth && Number(initialBuyEth) > 0 ? initialBuyEth : undefined,
     twitter,
@@ -364,6 +380,30 @@ export function LaunchStudio() {
                 <span className="font-mono text-zinc-900">
                   {balance ? `${Number(balance.formatted).toFixed(4)} ${balance.symbol}` : "…"}
                 </span>
+              </div>
+            )}
+
+            {quotes.length > 0 && (
+              <div className="mb-3">
+                <label className="mb-2 block text-sm text-zinc-700">Paired asset</label>
+                <div className="flex flex-wrap gap-2">
+                  {quotes.map((q) => {
+                    const active = pairToken.toLowerCase() === q.address.toLowerCase();
+                    return (
+                      <button
+                        key={q.address}
+                        type="button"
+                        disabled={!q.registered}
+                        onClick={() => q.registered && setPairToken(q.address)}
+                        title={q.note}
+                        className={`chip ${active ? "chip-accent" : ""} ${q.registered ? "card-hover" : "cursor-not-allowed opacity-50"}`}
+                      >
+                        {q.symbol}
+                        {!q.registered && " · soon"}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 

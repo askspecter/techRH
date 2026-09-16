@@ -59,7 +59,11 @@ export function parseDevBuyNative(amount?: string): bigint {
 export async function prepareArcLaunch(input: LaunchInput, account: Address): Promise<LaunchPlan> {
   const client = arcPublicClient();
   const factory = getAddress(ARC.contracts.factory);
-  const quoteToken = getAddress(ARC.usdc.erc20);
+  // Chosen paired asset must be one of the known candidates; default to USDC.
+  const requested = input.pairToken ? getAddress(input.pairToken) : null;
+  const chosen = ARC.quoteCandidates.find((q) => requested && getAddress(q.address) === requested);
+  const quoteToken = chosen ? getAddress(chosen.address) : getAddress(ARC.usdc.erc20);
+  const quoteSymbol = chosen ? chosen.symbol : ARC.usdc.symbol;
   const creator = getAddress(account);
   const warnings: string[] = [];
 
@@ -72,7 +76,7 @@ export async function prepareArcLaunch(input: LaunchInput, account: Address): Pr
   if (state.tokenAddressSuffix !== ARC.tokenAddressSuffix) {
     throw new Error(`Unexpected token-address suffix ${state.tokenAddressSuffix} on the Arc factory.`);
   }
-  if (!quoteState.registered) throw new Error("USDC is not a registered quote on the Arc factory right now.");
+  if (!quoteState.registered) throw new Error(`${quoteSymbol} is not a registered quote on the Arc factory yet.`);
   if (getAddress(state.hook) !== getAddress(ARC.contracts.hook)) {
     throw new Error("Live factory hook differs from the configured o1 Arc hook — refusing to launch.");
   }
@@ -185,7 +189,7 @@ export async function prepareArcLaunch(input: LaunchInput, account: Address): Pr
     functionName: "createLaunch",
     args: [params],
     value: state.nativeLaunchFee, // native USDC launch fee (2 USDC)
-    summary: `Launch "${input.name}" ($${input.ticker}) on o1.exchange (Arc), USDC-quoted. Fee ${feeDisplay} USDC.`,
+    summary: `Launch "${input.name}" ($${input.ticker}) on o1.exchange (Arc), ${quoteSymbol}-quoted. Fee ${feeDisplay} USDC.`,
     warnings,
   };
 }

@@ -30,6 +30,17 @@ export const ARC = {
     /** Native USDC (gas + launch fee) uses 18 decimals. */
     nativeDecimals: 18,
   },
+  /**
+   * Candidate paired/quote assets. A quote is only usable once o1 registers it
+   * on the factory on-chain (quoteConfig.registered === true) — /api/o1/quotes
+   * checks each one live, so a newly-unlocked pair (e.g. cirBTC) appears
+   * automatically with no code change, and an unregistered one stays locked
+   * instead of letting a launch revert.
+   */
+  quoteCandidates: [
+    { symbol: "USDC", address: "0x3600000000000000000000000000000000000000", decimals: 6, note: "Circle USDC" },
+    { symbol: "cirBTC", address: "0x171A4217b86A807A64eB94757Db6849fb4bDbAA0", decimals: 8, note: "Circle-issued BTC" },
+  ] as { symbol: string; address: string; decimals: number; note: string }[],
   /** o1 requires the launched token address to end in this byte. */
   tokenAddressSuffix: 1,
   /**
