@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAddress, parseEventLogs, toEventSelector, verifyMessage, type Address } from "viem";
+import { getAddress, isAddress, parseEventLogs, toEventSelector, verifyMessage, type Address } from "viem";
 import { getKv } from "@/lib/kv";
 import { indexV2Launches } from "@/lib/pons/readerV2";
 import { ponsClient } from "@/lib/pons/reader";
@@ -34,6 +34,8 @@ export interface LaunchRecord {
   /** Chain the launch happened on. Absent on legacy (pre-Arc) records, which
    *  are filtered out of the feed so old Pons/Robinhood launches don't show. */
   chainId?: number;
+  /** Optional paired/reward token (any Arc ERC-20 CA) the creator designated. */
+  rewardToken?: string;
 }
 
 /** GET /api/launches?limit=48 - newest CREO launches, recorded in KV when a
@@ -542,6 +544,7 @@ export async function POST(req: Request) {
     txHash: String(body.txHash ?? "").slice(0, 80),
     createdAt: Date.now(),
     chainId: CURRENT_CHAIN_ID,
+    rewardToken: body.rewardToken && isAddress(body.rewardToken) ? getAddress(body.rewardToken) : undefined,
   };
 
   await kv.lpush(KEY, JSON.stringify(record));

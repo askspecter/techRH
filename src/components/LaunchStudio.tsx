@@ -101,6 +101,8 @@ export function LaunchStudio() {
   const [quotes, setQuotes] = useState<{ symbol: string; address: `0x${string}`; registered: boolean; note: string }[]>([]);
   const [buybackEnabled, setBuybackEnabled] = useState(true);
   const [initialBuyEth, setInitialBuyEth] = useState("");
+  // Optional "paired" reward token — any Arc ERC-20 CA the creator pastes.
+  const [rewardToken, setRewardToken] = useState("");
 
   // Paste-any-token pair picker (validated live against the Pons factory).
   const [pastePair, setPastePair] = useState("");
@@ -207,6 +209,7 @@ export function LaunchStudio() {
     pairToken,
     // Optional atomic dev buy, in USDC (Arc's gas + quote asset).
     initialBuyEth: initialBuyEth && Number(initialBuyEth) > 0 ? initialBuyEth : undefined,
+    rewardToken: /^0x[0-9a-fA-F]{40}$/.test(rewardToken.trim()) ? rewardToken.trim() : undefined,
     twitter,
     telegram,
   };
@@ -419,6 +422,20 @@ export function LaunchStudio() {
                 />
                 <span className="text-xs text-zinc-500">USDC — buy your own token in the same tx</span>
               </div>
+            </label>
+
+            <label className="mb-3 block text-sm text-zinc-700">
+              Paired reward token (optional)
+              <input
+                value={rewardToken}
+                onChange={(e) => setRewardToken(e.target.value.trim())}
+                placeholder="Paste any Arc token address (0x…)"
+                spellCheck={false}
+                className="mt-1 w-full rounded-xl border border-ink-line bg-white/70 px-3 py-2 font-mono text-xs outline-none focus:border-rose/60"
+              />
+              <span className="mt-1 block text-[11px] text-zinc-500">
+                Launch stays USDC-quoted; your claimed USDC creator fees buy this token. Leave blank to skip.
+              </span>
             </label>
 
             <DeployButton input={launchInput} disabled={!name || ticker.length < 2} />

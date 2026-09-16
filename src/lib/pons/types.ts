@@ -32,6 +32,12 @@ export interface LaunchInput {
   twitter?: string;
   telegram?: string;
   website?: string;
+  /**
+   * Optional "paired" reward token (any Arc ERC-20 CA). The launch itself stays
+   * USDC-quoted on o1; this is the token the creator designates so their claimed
+   * USDC fees buy it. Stored with the launch record, shown on the token page.
+   */
+  rewardToken?: string;
 }
 
 /**

@@ -13,6 +13,7 @@ import { VerifiedBadge } from "./VerifiedBadge";
 import { PairedWithChip } from "./PairedWithChip";
 import { TokenMarket } from "./TokenMarket";
 import { TokenActivity } from "./TokenActivity";
+import { O1CreatorClaim } from "./O1CreatorClaim";
 import { TopHolders } from "./TopHolders";
 import { TokenDetails } from "./TokenDetails";
 import { isVerified } from "@/lib/verified";
@@ -75,6 +76,7 @@ export function TokenDashboard({ address }: { address: string }) {
   const [v2, setV2] = useState<V2Status | null>(null);
   const [v1, setV1] = useState<V1Status | null>(null);
   const [recordLogo, setRecordLogo] = useState<string>("");
+  const [recordReward, setRecordReward] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { address: account } = useAccount();
@@ -89,7 +91,10 @@ export function TokenDashboard({ address }: { address: string }) {
     // blank logo for something launched through CREO.
     fetch(`/api/launches?token=${address}`, { cache: "no-store" })
       .then((r) => r.json())
-      .then((d) => setRecordLogo(d?.item?.logo ?? ""))
+      .then((d) => {
+        setRecordLogo(d?.item?.logo ?? "");
+        setRecordReward(d?.item?.rewardToken ?? "");
+      })
       .catch(() => {});
     try {
       const r2 = await fetch(`/api/v2/token?address=${address}`, { cache: "no-store" });
@@ -203,6 +208,13 @@ export function TokenDashboard({ address }: { address: string }) {
               </div>
             )}
           </section>
+        )}
+
+        {/* Developer-only: claim accrued creator fees (USDC) from o1's escrow. */}
+        {header && (
+          <div className="mt-4">
+            <O1CreatorClaim token={address} creator={header.deployer} rewardToken={recordReward} />
+          </div>
         )}
 
         {/* DexScreener market (price / market cap / volume / chart) for any

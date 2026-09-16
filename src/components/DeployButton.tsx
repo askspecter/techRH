@@ -69,6 +69,7 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
       website: input.website,
       deployer: address,
       txHash: hash,
+      rewardToken: input.rewardToken,
     };
 
     // POST with a few retries: if the server can't resolve the token yet
