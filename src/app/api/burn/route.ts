@@ -14,7 +14,14 @@ export const dynamic = "force-dynamic";
  * figure blank) across a fallback list of Arc RPCs, with a short cache and a
  * last-good fallback so an RPC outage never blanks the number.
  */
-const DEAD = getAddress("0x000000000000000000000000000000000000dEaD");
+// Burn destination(s). Defaults to the standard dead wallet; override with
+// BURN_ADDRESSES (comma-separated) if buybacks are sent somewhere else — the
+// burned total is the sum of $CREO held across all of them.
+const BURN_ADDRESSES = (process.env.BURN_ADDRESSES || "0x000000000000000000000000000000000000dEaD")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean)
+  .map((a) => getAddress(a));
 const CREO = getAddress(OFFICIAL_TOKEN.address);
 
 // thirdweb answers eth_call reliably; arc-scan is a backup. A paid RPC set via
@@ -34,13 +41,16 @@ export async function GET() {
       chain: arcChain,
       transport: fallback(RPCS.map((u) => http(u, { timeout: 12_000 })), { rank: false }),
     });
-    const [dead, supply, decimals] = await Promise.all([
-      client.readContract({ address: CREO, abi: erc20Abi, functionName: "balanceOf", args: [DEAD] }),
+    const [balances, supply, decimals] = await Promise.all([
+      Promise.all(
+        BURN_ADDRESSES.map((addr) => client.readContract({ address: CREO, abi: erc20Abi, functionName: "balanceOf", args: [addr] })),
+      ),
       client.readContract({ address: CREO, abi: erc20Abi, functionName: "totalSupply" }),
       client.readContract({ address: CREO, abi: erc20Abi, functionName: "decimals" }),
     ]);
+    const burnedRaw = (balances as bigint[]).reduce((sum, b) => sum + b, 0n);
     lastGood = {
-      burned: Number(formatUnits(dead as bigint, decimals as number)),
+      burned: Number(formatUnits(burnedRaw, decimals as number)),
       supply: Number(formatUnits(supply as bigint, decimals as number)),
     };
     cachedAt = Date.now();
