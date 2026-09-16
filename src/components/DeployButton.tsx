@@ -29,7 +29,7 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
   const strategy = getStrategy(input.version);
   const ready = strategy.info().ready;
 
-  async function recordLaunch(hash: `0x${string}`) {
+  async function recordLaunch(hash: `0x${string}`, logo: string) {
     if (!address) return;
 
     // Fast path: try to read the token straight from the receipt. This relies
@@ -61,7 +61,9 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
       version: input.version,
       name: input.name,
       symbol: input.ticker,
-      logo: input.imageUri,
+      // Hosted short URL (never the raw data URI, which KV would truncate to a
+      // broken image), matching the on-chain logo.
+      logo,
       twitter: input.twitter,
       telegram: input.telegram,
       website: input.website,
@@ -161,7 +163,7 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
       });
       setTxHash(hash);
       setStatus("sent");
-      void recordLaunch(hash);
+      void recordLaunch(hash, onchainLogo);
     } catch (err) {
       setStatus("error");
       setError(err instanceof Error ? err.message : "Transaction failed.");

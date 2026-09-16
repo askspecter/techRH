@@ -71,8 +71,12 @@ export async function POST(req: Request) {
         }
         stats[input.token] = s;
         if (kv) {
+          // A brand-new token isn't on DexScreener yet, so its stats come back
+          // null. Cache that only briefly so MC/Vol appear as soon as the pool
+          // is indexed (~1 min), instead of being stuck at "-" for CACHE_TTL.
+          const empty = s.marketCapUsd == null && s.volumeUsd == null;
           await kv
-            .set(`creo:stats:${input.token.toLowerCase()}`, s, { ex: CACHE_TTL })
+            .set(`creo:stats:${input.token.toLowerCase()}`, s, { ex: empty ? 20 : CACHE_TTL })
             .catch(() => {});
         }
       })

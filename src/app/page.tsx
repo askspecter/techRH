@@ -44,18 +44,27 @@ export default function HomePage() {
       .catch(() => setItems(withOfficial([])));
   }, []);
 
-  // Market cap + volume for the loaded tokens (cached server-side).
+  // Market cap + volume for the loaded tokens (cached server-side). Polled so a
+  // just-launched token's stats appear once DexScreener indexes it (~1 min).
   useEffect(() => {
     if (!items || items.length === 0) return;
     const tokens = items.slice(0, 24).map((i) => ({ token: i.token, curve: i.curve, version: i.version }));
-    fetch("/api/launches/stats", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ tokens }),
-    })
-      .then((r) => r.json())
-      .then((d: { stats?: Record<string, TokenStat> }) => setStats(d.stats ?? {}))
-      .catch(() => {});
+    let cancelled = false;
+    const load = () =>
+      fetch("/api/launches/stats", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ tokens }),
+      })
+        .then((r) => r.json())
+        .then((d: { stats?: Record<string, TokenStat> }) => !cancelled && d.stats && setStats(d.stats))
+        .catch(() => {});
+    load();
+    const id = setInterval(load, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, [items]);
 
   const shown = useMemo(() => {
