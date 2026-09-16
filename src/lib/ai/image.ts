@@ -1,15 +1,16 @@
 import { generateFallbackLogo } from "./avatar";
+import { fluxImageDataUri } from "./flux";
 
 /**
- * AI token art through the **Bankr LLM Gateway** (same key/base as text
- * generation - Bankr routes across many models). Two styles:
+ * AI token art. Two styles:
  *  - "icon"  → a clean, iconic token logo.
  *  - "photo" → a photorealistic, cinematic promo image.
  *
  * Order of providers:
- *  1. Bankr LLM Gateway (BANKR_API_KEY, OpenAI-compatible /v1/images/generations)
- *  2. A generic OpenAI-compatible endpoint (IMAGE_API_URL + IMAGE_API_KEY), if set
- *  3. Deterministic SVG fallback so the studio always works.
+ *  1. FLUX.1 [schnell] on fal.ai (FAL_KEY) — best stylized token art (from AgentHood)
+ *  2. Bankr LLM Gateway (BANKR_API_KEY, OpenAI-compatible /v1/images/generations)
+ *  3. A generic OpenAI-compatible endpoint (IMAGE_API_URL + IMAGE_API_KEY), if set
+ *  4. Deterministic SVG fallback so the studio always works.
  */
 
 export type ImageStyle = "icon" | "photo";
@@ -55,7 +56,11 @@ export async function generateTokenImage(
   // fallback every time.
   const size = process.env.IMAGE_SIZE || "1024x1024";
 
-  // 1) Bankr LLM Gateway (preferred - one key for text + image + more).
+  // 0) FLUX.1 [schnell] on fal.ai — preferred for stylized token art.
+  const flux = await fluxImageDataUri(prompt);
+  if (flux) return flux;
+
+  // 1) Bankr LLM Gateway (one key for text + image + more).
   const bankrKey = process.env.BANKR_API_KEY;
   if (bankrKey) {
     const base = process.env.BANKR_BASE_URL || "https://llm.bankr.bot";
