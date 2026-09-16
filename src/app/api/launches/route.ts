@@ -6,6 +6,7 @@ import { ponsClient } from "@/lib/pons/reader";
 import { tokenAbi as v1TokenAbi, tokenLaunchedEvent as v1TokenLaunchedEvent } from "@/lib/pons/abis";
 import { v2TokenAbi, v2TokenLaunchedEvent } from "@/lib/pons/abisV2";
 import { PONS_V1, PONS_V2 } from "@/lib/pons/registry";
+import { o1LaunchedEvent } from "@/lib/o1/events";
 import { explorerUrl } from "@/lib/chain";
 
 export const runtime = "nodejs";
@@ -217,6 +218,7 @@ async function resolveLaunchFromTxRpc(txHash: string): Promise<{ token: string; 
   try {
     const receipt = await ponsClient().getTransactionReceipt({ hash: txHash as `0x${string}` });
     const logs = [
+      ...parseEventLogs({ abi: [o1LaunchedEvent], logs: receipt.logs }),
       ...parseEventLogs({ abi: [v2TokenLaunchedEvent], logs: receipt.logs }),
       ...parseEventLogs({ abi: [v1TokenLaunchedEvent], logs: receipt.logs }),
     ];

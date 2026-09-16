@@ -7,6 +7,7 @@ import { getStrategy, type LaunchInput } from "@/lib/pons";
 import { toOnchainLogo } from "@/lib/upload";
 import { v2TokenLaunchedEvent } from "@/lib/pons/abisV2";
 import { tokenLaunchedEvent } from "@/lib/pons/abis";
+import { o1LaunchedEvent } from "@/lib/o1/events";
 import { robinhoodChain, explorerTx } from "@/lib/chain";
 
 /**
@@ -40,6 +41,7 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
       if (publicClient) {
         const receipt = await publicClient.waitForTransactionReceipt({ hash });
         const logs = [
+          ...parseEventLogs({ abi: [o1LaunchedEvent], logs: receipt.logs }),
           ...parseEventLogs({ abi: [v2TokenLaunchedEvent], logs: receipt.logs }),
           ...parseEventLogs({ abi: [tokenLaunchedEvent], logs: receipt.logs }),
         ];
