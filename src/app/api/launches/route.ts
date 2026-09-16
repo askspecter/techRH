@@ -7,7 +7,10 @@ import { tokenAbi as v1TokenAbi, tokenLaunchedEvent as v1TokenLaunchedEvent } fr
 import { v2TokenAbi, v2TokenLaunchedEvent } from "@/lib/pons/abisV2";
 import { PONS_V1, PONS_V2 } from "@/lib/pons/registry";
 import { o1LaunchedEvent } from "@/lib/o1/events";
-import { explorerUrl } from "@/lib/chain";
+import { explorerUrl, robinhoodChain } from "@/lib/chain";
+
+/** The chain the app currently launches on (Arc). Feed shows only this chain. */
+const CURRENT_CHAIN_ID = robinhoodChain.id;
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,6 +31,9 @@ export interface LaunchRecord {
   deployer: string;
   txHash: string;
   createdAt: number;
+  /** Chain the launch happened on. Absent on legacy (pre-Arc) records, which
+   *  are filtered out of the feed so old Pons/Robinhood launches don't show. */
+  chainId?: number;
 }
 
 /** GET /api/launches?limit=48 - newest CREO launches, recorded in KV when a
@@ -61,6 +67,9 @@ export async function GET(req: Request) {
   }
 
   const items = all
+    // Only launches on the current chain (Arc). Legacy Pons/Robinhood records
+    // have no chainId and are dropped, so old tokens leave the feed.
+    .filter((r) => r.chainId === CURRENT_CHAIN_ID)
     .filter((r) => (version === "v1" || version === "v2" ? r.version === version : true))
     .slice(0, limit);
 
@@ -532,6 +541,7 @@ export async function POST(req: Request) {
     deployer: body.deployer && isAddress(body.deployer) ? body.deployer : "0x0000000000000000000000000000000000000000",
     txHash: String(body.txHash ?? "").slice(0, 80),
     createdAt: Date.now(),
+    chainId: CURRENT_CHAIN_ID,
   };
 
   await kv.lpush(KEY, JSON.stringify(record));

@@ -24,9 +24,9 @@ export const OFFICIAL_TOKEN: {
   logo: string;
   version: "v1" | "v2";
 } = {
-  address: "",
-  name: "",
-  symbol: "",
+  address: "0x1c98d896328c35a751ce18323f47139a44188001",
+  name: "CREO",
+  symbol: "CREO",
   logo: "/creo-logo.jpg",
   version: "v2",
 };
