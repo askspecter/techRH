@@ -4,8 +4,8 @@ import type { PonsVersion } from "./types";
  * ─────────────────────────────────────────────────────────────────────────
  *  Pons contract registry
  * ─────────────────────────────────────────────────────────────────────────
- *  v1 addresses below are the OFFICIAL, verified deployments on Robinhood
- *  Chain (from docs.ponsfamily.com). v2 stays as env-config until its own
+ *  v1 addresses below are the OFFICIAL, verified deployments on Arc
+ *  (from docs.ponsfamily.com). v2 stays as env-config until its own
  *  official addresses/ABI are wired in.
  *
  *  DEPLOY SAFETY: having a factory address is NOT enough to deploy. The
@@ -16,9 +16,9 @@ import type { PonsVersion } from "./types";
  * ─────────────────────────────────────────────────────────────────────────
  */
 
-/** Verified v1 deployment on Robinhood Chain (docs.ponsfamily.com). */
+/** Verified v1 deployment on Arc (docs.ponsfamily.com). */
 export const PONS_V1 = {
-  // Correct, verified v1 factory on Robinhood Chain (provided by the project owner).
+  // Correct, verified v1 factory on Arc (provided by the project owner).
   activeFactory: "0xf4fc0cd27fc8ecf17e55ee4c3f7201897df3eb75" as `0x${string}`,
   activeFactoryStartBlock: 8991118n,
   activeLocker: "0x736D76699C26D0d966744cAe304C000d471f7F35" as `0x${string}`,
@@ -40,7 +40,7 @@ export const PONS_V1 = {
 } as const;
 
 /**
- * Verified v2 deployment on Robinhood Chain (docs.ponsfamily.com/v2).
+ * Verified v2 deployment on Arc (docs.ponsfamily.com/v2).
  * Resolve each launch's own curve/token from the factory (created per launch).
  * NOTE: v2 is deployed but UNAUDITED, and public launches are closed
  * (whitelist only) - always check canLaunch(address) before deploy.
@@ -94,7 +94,7 @@ export const REGISTRY: Record<PonsVersion, PonsVersionConfig> = {
 };
 
 /**
- * ERC-20 quote-token addresses on Robinhood Chain (provided by the project
+ * ERC-20 quote-token addresses on Arc (provided by the project
  * owner). These are offered as v2 quote assets ONLY after being validated live
  * against the factory (approvedPairTokens + pairTokenEconomics) - an asset the
  * factory hasn't approved is never shown, so a launch can't settle on it.

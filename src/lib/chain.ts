@@ -19,16 +19,14 @@ const RPC_URL = env("NEXT_PUBLIC_RPC_URL", "https://rpc.mainnet.chain.robinhood.
 const EXPLORER_URL = env("NEXT_PUBLIC_EXPLORER_URL", "https://robinhoodchain.blockscout.com");
 
 /**
- * Robinhood Chain - verified network parameters.
+ * Arc - verified network parameters.
  *  - Chain ID: 4663
  *  - Native currency: ETH
  *  - L2 built on Arbitrum Orbit
- *
- * Sources: robinhoodchain.wiki, Chainstack docs, MetaMask add-network guides.
  */
 export const robinhoodChain = defineChain({
   id: CHAIN_ID,
-  name: "Robinhood Chain",
+  name: "Arc",
   nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
   rpcUrls: {
     default: { http: [RPC_URL] },

@@ -3,11 +3,11 @@ export const SITE = {
   name: "CREO",
   tagline: "One line in. A token out.",
   description:
-    "Cinematic AI launchpad. Describe a token in one sentence, watch the full launch package render, and deploy to Pons on Robinhood Chain, non-custodial.",
+    "Cinematic AI launchpad. Describe a token in one sentence, watch the full launch package render, and deploy to Pons on Arc, non-custodial.",
   x: "https://x.com/creodotfamily",
   xHandle: "@creodotfamily",
   company: "CREO",
-  chain: "Robinhood Chain",
+  chain: "Arc",
   poweredBy: "Pons",
 } as const;
 
@@ -18,9 +18,9 @@ export const SITE = {
  * outside the app, so it is surfaced explicitly.)
  */
 export const OFFICIAL_TOKEN = {
-  address: "0xe078416ABc381000079C6Db0c7Bc9f03591e792f",
-  name: "CREO",
-  symbol: "CREO",
+  address: "",
+  name: "",
+  symbol: "",
   logo: "/creo-logo.jpg",
   version: "v2" as const,
 } as const;

@@ -12,7 +12,7 @@ export interface AvailabilityResult {
  *
  * Token symbols are NOT unique on an EVM chain - anyone can deploy "$DOGE".
  * So this is a collision *warning*, not a hard reservation: we query the
- * Blockscout token search on Robinhood Chain and report existing matches so
+ * Blockscout token search on Arc and report existing matches so
  * the creator can pick a less-crowded ticker.
  */
 export async function checkTickerAvailability(ticker: string): Promise<AvailabilityResult> {

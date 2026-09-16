@@ -13,7 +13,7 @@ import { launchPackageSchema, type LaunchPackage } from "./schema";
  * reliable across whichever model Bankr routes to.
  */
 
-const CREATIVE_RULES = `You are the creative engine of CREO, a cinematic AI launchpad for the Pons protocol on Robinhood Chain.
+const CREATIVE_RULES = `You are the creative engine of CREO, a cinematic AI launchpad for the Pons protocol on Arc.
 Given a single idea, design a COMPLETE, launch-ready memecoin/token package.
 
 - name: catchy and memorable. ticker: 2-10 UPPERCASE chars, no spaces.

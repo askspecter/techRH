@@ -2,7 +2,7 @@
   "name": "creo",
   "version": "0.1.0",
   "private": true,
-  "description": "CREO — cinematic AI launchpad. Describe a token in one sentence, AI drafts the full package, deploy to the Pons launchpad on Robinhood Chain in one click.",
+  "description": "CREO — cinematic AI launchpad. Describe a token in one sentence, AI drafts the full package, deploy to the Pons launchpad on Arc in one click.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

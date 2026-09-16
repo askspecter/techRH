@@ -115,6 +115,7 @@ export default function FeedPage() {
 
 /** Prepend the official token (deduped) so the flagship always shows. */
 function withOfficial(items: LaunchRecord[]): LaunchRecord[] {
+  if (!OFFICIAL_TOKEN.address) return items;
   const addr = OFFICIAL_TOKEN.address.toLowerCase();
   if (items.some((i) => i.token.toLowerCase() === addr)) return items;
   const official: LaunchRecord = {

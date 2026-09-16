@@ -1,7 +1,7 @@
 # 🌅 CREO — cinematic AI launchpad
 
 **CREO** turns one sentence into a complete, launch-ready token and deploys it to
-**[Pons](https://ponsfamily.com)** (the launchpad on Robinhood Chain). AI drafts the whole package,
+**[Pons](https://ponsfamily.com)** (the launchpad on Arc). AI drafts the whole package,
 you pick the launch model — **v1 or v2** — then **deploy in one click** through the Pons contracts.
 Non-custodial: every transaction is signed by your own wallet.
 
@@ -29,14 +29,14 @@ Frontend (Next.js, CREO UI)  →  Version selector (v1/v2)
         → LaunchStrategy (interface)          ← engine
              ├─ PonsV1Adapter → Uniswap V3 pool (WETH)
              └─ PonsV2Adapter → bonding curve → graduate V4 (RWA)
-        → Wallet (wagmi/viem, Robinhood Chain, non-custodial)
+        → Wallet (wagmi/viem, Arc, non-custodial)
 ```
 
 | Path | Contents |
 |---|---|
 | `src/lib/pons/` | v1/v2 adapters, registry (addresses), ABIs, on-chain readers — **engine** |
 | `src/lib/ai/` | Launch-package generation, fallback SVG logo, availability check — **engine** |
-| `src/lib/chain.ts` | Robinhood Chain definition (id 4663) — **engine** |
+| `src/lib/chain.ts` | Arc definition (id 4663) — **engine** |
 | `src/app/api/*` | `generate`, `launches`, `token`, `feed`, `v2/*` endpoints — **engine** |
 | `src/app/`, `src/components/` | CREO's landing, studio, feed, and design system — **new UI** |
 

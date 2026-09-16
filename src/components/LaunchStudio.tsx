@@ -39,7 +39,7 @@ interface V2Options {
 export function LaunchStudio() {
   const versions = useMemo(() => allVersionInfo(), []);
   const { address, isConnected } = useAccount();
-  // Read the wallet's native balance on Robinhood Chain explicitly, so the
+  // Read the wallet's native balance on Arc explicitly, so the
   // deploy step shows the real balance regardless of the wallet's active chain.
   const { data: balance } = useBalance({
     address,

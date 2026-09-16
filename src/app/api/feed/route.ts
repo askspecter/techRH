@@ -62,7 +62,7 @@ export async function GET(req: Request) {
   } catch (err) {
     const raw = err instanceof Error ? err.message : "";
     const message = /allowlist|HTTP request failed|fetch failed|timeout|network/i.test(raw)
-      ? "Couldn't reach Robinhood Chain right now - try again in a moment."
+      ? "Couldn't reach Arc right now - try again in a moment."
       : raw || "Failed to load the feed.";
     return NextResponse.json({ error: message, items: [] }, { status: 502 });
   }

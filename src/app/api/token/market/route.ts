@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
  * GET /api/token/market?address=0x...
  * Price, market cap, and 24h volume for any token, plus the best DEX pair
  * (chain slug + pair address) so the client can embed the DexScreener chart.
- * Sourced from the public DexScreener API, which indexes Robinhood Chain.
+ * Sourced from the public DexScreener API, which indexes Arc.
  * Returns { pair: null } when no DEX market is found, so the UI can degrade.
  */
 export async function GET(req: Request) {

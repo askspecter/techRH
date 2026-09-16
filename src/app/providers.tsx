@@ -15,7 +15,7 @@ import { robinhoodChain } from "@/lib/chain";
 // Wallet connect - the exact working RainbowKit + wagmi v2 setup from Verbo
 // (see WALLET_CONNECT.md). RainbowKit's modal gives MetaMask / Browser Wallet /
 // Rainbow / WalletConnect. WalletConnect negotiates an EVM-only (eip155) session,
-// so multi-chain wallets (Bitget/OKX) connect on Robinhood - never Solana.
+// so multi-chain wallets (Bitget/OKX) connect on Arc - never Solana.
 //
 // Stability depends on TWO things, both in place:
 //   1. next.config.js webpack aliases stub the Coinbase/Base account SDKs that

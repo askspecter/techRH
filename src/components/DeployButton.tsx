@@ -177,7 +177,7 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
     );
   }
 
-  // Connected but on the wrong network → a prominent "Switch to Robinhood"
+  // Connected but on the wrong network → a prominent "Switch to Arc"
   // button (like Pons) instead of Deploy, so the network fix is one tap.
   if (isConnected && chainId !== robinhoodChain.id) {
     return (
@@ -193,7 +193,7 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
             }
           }}
         >
-          {switching ? "Switching…" : "Switch to Robinhood"}
+          {switching ? "Switching…" : "Switch to Arc"}
         </button>
         <p className="text-xs text-zinc-500">
           This app runs on {robinhoodChain.name} (an EVM chain, not Solana). Switch to deploy.

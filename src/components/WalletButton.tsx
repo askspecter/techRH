@@ -56,7 +56,7 @@ export function WalletButton({ variant = "solid" }: { variant?: "inline" | "soli
                 onClick={openChainModal}
                 className="rounded-full border border-amber-400/50 bg-amber-400/15 px-3.5 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-400/25"
               >
-                Switch to Robinhood
+                Switch to Arc
               </button>
             ) : (
               <button
