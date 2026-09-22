@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { useAccount, usePublicClient, useSwitchChain, useWriteContract } from "wagmi";
 import { BaseError, ContractFunctionRevertedError, parseEventLogs, type Abi } from "viem";
-import { getStrategy, type LaunchInput } from "@/lib/pons";
+import { type LaunchInput } from "@/lib/pons";
 import { toOnchainLogo } from "@/lib/upload";
 import { v2TokenLaunchedEvent } from "@/lib/pons/abisV2";
 import { tokenLaunchedEvent } from "@/lib/pons/abis";
 import { o1LaunchedEvent } from "@/lib/o1/events";
-import { robinhoodChain, explorerTx } from "@/lib/chain";
+import { LAUNCH_TARGETS, type LaunchTarget } from "@/lib/launch/targets";
 
 /**
  * Deploy path is engine logic (unchanged from the reference): the active
@@ -16,9 +16,18 @@ import { robinhoodChain, explorerTx } from "@/lib/chain";
  * we parse the receipt for the new token address and record it to the feed.
  * Only the presentation here is CREO's.
  */
-export function DeployButton({ input, disabled }: { input: LaunchInput; disabled?: boolean }) {
+export function DeployButton({
+  input,
+  disabled,
+  target = LAUNCH_TARGETS.arc,
+}: {
+  input: LaunchInput;
+  disabled?: boolean;
+  /** Which chain + launch model to deploy to (Arc or Robinhood). */
+  target?: LaunchTarget;
+}) {
   const { address, isConnected, chainId } = useAccount();
-  const publicClient = usePublicClient();
+  const publicClient = usePublicClient({ chainId: target.chain.id });
   const { switchChainAsync, isPending: switching } = useSwitchChain();
   const { writeContractAsync } = useWriteContract();
   const [status, setStatus] = useState<"idle" | "preparing" | "signing" | "sent" | "error">("idle");
@@ -26,7 +35,8 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
 
-  const strategy = getStrategy(input.version);
+  const { chain } = target;
+  const strategy = target.strategy;
   const ready = strategy.info().ready;
 
   async function recordLaunch(hash: `0x${string}`, logo: string) {
@@ -58,7 +68,7 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
     const payload = {
       token,
       curve,
-      version: input.version,
+      version: target.version,
       name: input.name,
       symbol: input.ticker,
       // Hosted short URL (never the raw data URI, which KV would truncate to a
@@ -109,12 +119,12 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
     setWarnings([]);
     if (!address) return;
     try {
-      if (chainId !== robinhoodChain.id) {
+      if (chainId !== chain.id) {
         try {
-          await switchChainAsync({ chainId: robinhoodChain.id });
+          await switchChainAsync({ chainId: chain.id });
         } catch {
           throw new Error(
-            `Your wallet must be on ${robinhoodChain.name} (chain ${robinhoodChain.id}). ` +
+            `Your wallet must be on ${chain.name} (chain ${chain.id}). ` +
               `Switch networks in your wallet - this is an EVM chain, not Solana - then try again.`
           );
         }
@@ -160,7 +170,7 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
         // Enforce the network on the tx itself, so a wallet still on another
         // chain (e.g. Solana) gets a clear chain-mismatch error instead of
         // silently sending - and never lands on the wrong network.
-        chainId: robinhoodChain.id,
+        chainId: chain.id,
       });
       setTxHash(hash);
       setStatus("sent");
@@ -174,7 +184,7 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
   if (status === "sent" && txHash) {
     return (
       <div className="space-y-2">
-        <a className="btn-brand w-full" href={explorerTx(txHash)} target="_blank" rel="noreferrer">
+        <a className="btn-brand w-full" href={target.explorerTx(txHash)} target="_blank" rel="noreferrer">
           ✓ Launched - view on explorer
         </a>
         <a href="/feed" className="btn-ghost w-full">See it in the feed →</a>
@@ -182,9 +192,9 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
     );
   }
 
-  // Connected but on the wrong network → a prominent "Switch to Arc"
-  // button (like Pons) instead of Deploy, so the network fix is one tap.
-  if (isConnected && chainId !== robinhoodChain.id) {
+  // Connected but on the wrong network → a prominent "Switch to <chain>"
+  // button instead of Deploy, so the network fix is one tap.
+  if (isConnected && chainId !== chain.id) {
     return (
       <div className="space-y-2">
         <button
@@ -192,16 +202,16 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
           disabled={switching}
           onClick={async () => {
             try {
-              await switchChainAsync({ chainId: robinhoodChain.id });
+              await switchChainAsync({ chainId: chain.id });
             } catch {
               /* user rejected or wallet still on another network */
             }
           }}
         >
-          {switching ? "Switching…" : "Switch to Arc"}
+          {switching ? "Switching…" : `Switch to ${chain.name}`}
         </button>
         <p className="text-xs text-zinc-500">
-          This app runs on {robinhoodChain.name} (an EVM chain, not Solana). Switch to deploy.
+          This launch deploys on {chain.name} (an EVM chain, not Solana). Switch to deploy.
         </p>
       </div>
     );
@@ -214,7 +224,7 @@ export function DeployButton({ input, disabled }: { input: LaunchInput; disabled
       ? "Reading on-chain…"
       : status === "signing"
         ? "Sign in your wallet…"
-        : "Deploy · o1 on Arc";
+        : `Deploy · ${target.label}`;
 
   return (
     <div className="space-y-2">

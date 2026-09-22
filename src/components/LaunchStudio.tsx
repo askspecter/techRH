@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAccount, useBalance } from "wagmi";
-import { formatEther, zeroAddress } from "viem";
+import { zeroAddress } from "viem";
 import { DeployButton } from "./DeployButton";
-import { type LaunchInput } from "@/lib/pons";
+import { type LaunchInput, type QuoteAsset } from "@/lib/pons";
 import type { LaunchPackage } from "@/lib/ai/schema";
 import { uploadLogo } from "@/lib/upload";
-import { robinhoodChain } from "@/lib/chain";
+import { LAUNCH_TARGET_LIST, LAUNCH_TARGETS, DEFAULT_LAUNCH_TARGET, type LaunchTargetId } from "@/lib/launch/targets";
 
 interface GenerateResponse {
   package: LaunchPackage;
@@ -20,27 +20,21 @@ interface GenerateResponse {
   };
 }
 
-interface V2Options {
-  launchFee: string;
-  canLaunch: boolean | null;
-  configs: Array<{
-    id: string;
-    supply: string;
-    curveFeeBps: string;
-    graduationThreshold: string;
-    poolFee: number;
-    tickSpacing: number;
-  }>;
-  quoteAssets: Array<{ asset: string; symbol: string; name: string; decimals: number; graduationThreshold: string }>;
-}
 
 export function LaunchStudio() {
   const { address, isConnected } = useAccount();
-  // Read the wallet's native balance on Arc explicitly, so the
+
+  // Which launch target the creator picked: Arc (o1, USDC) or Robinhood
+  // (Pons bonding curve, ETH). Two real chains, two real deploy paths.
+  const [targetId, setTargetId] = useState<LaunchTargetId>(DEFAULT_LAUNCH_TARGET);
+  const target = LAUNCH_TARGETS[targetId];
+  const isArc = targetId === "arc";
+
+  // Read the wallet's native balance on the SELECTED target's chain, so the
   // deploy step shows the real balance regardless of the wallet's active chain.
   const { data: balance } = useBalance({
     address,
-    chainId: robinhoodChain.id,
+    chainId: target.chain.id,
     query: { enabled: Boolean(address) && isConnected },
   });
 
@@ -53,9 +47,10 @@ export function LaunchStudio() {
   const [name, setName] = useState("");
   const [ticker, setTicker] = useState("");
   const [description, setDescription] = useState("");
-  // Arc has a single launch path (o1 launchpad), quoted in USDC — no v1/v2 choice.
-  const version = "v2" as const;
-  const quoteAsset = "USDC" as const;
+  // The launch model + quote asset follow the selected target: Arc launches are
+  // o1/USDC-quoted; Robinhood launches are Pons bonding-curve/ETH-quoted.
+  const version = target.version;
+  const quoteAsset: QuoteAsset = isArc ? "USDC" : "ETH";
   const [logo, setLogo] = useState("");
   const [twitter, setTwitter] = useState("");
   const [telegram, setTelegram] = useState("");
@@ -92,9 +87,7 @@ export function LaunchStudio() {
   }
 
   // v2-specific, loaded live from chain.
-  const [v2opts, setV2opts] = useState<V2Options | null>(null);
-  const [v2loading, setV2loading] = useState(false);
-  const [launchConfigId, setLaunchConfigId] = useState(0);
+  const [launchConfigId] = useState(0);
   const [pairToken, setPairToken] = useState<`0x${string}`>(zeroAddress);
   // Paired assets the o1 Arc factory currently accepts (USDC now; cirBTC and
   // future assets light up automatically once o1 registers them on-chain).
@@ -199,6 +192,10 @@ export function LaunchStudio() {
       .catch(() => {});
   }, []);
 
+  // Arc quotes in USDC against an o1-registered pair; Robinhood launches on a
+  // native-ETH bonding curve, so it always uses the zero-address (native) pair.
+  const effectivePairToken = isArc ? pairToken : zeroAddress;
+
   const launchInput: LaunchInput = {
     version,
     name,
@@ -206,10 +203,14 @@ export function LaunchStudio() {
     description,
     imageUri: logo,
     quoteAsset,
-    pairToken,
-    // Optional atomic dev buy, in USDC (Arc's gas + quote asset).
+    pairToken: effectivePairToken,
+    // Bonding-curve launch config + protocol buyback (used by the Robinhood
+    // Pons path; ignored by the Arc o1 path).
+    launchConfigId,
+    buybackEnabled,
+    // Optional atomic dev buy — USDC on Arc, ETH on Robinhood.
     initialBuyEth: initialBuyEth && Number(initialBuyEth) > 0 ? initialBuyEth : undefined,
-    rewardToken: /^0x[0-9a-fA-F]{40}$/.test(rewardToken.trim()) ? rewardToken.trim() : undefined,
+    rewardToken: isArc && /^0x[0-9a-fA-F]{40}$/.test(rewardToken.trim()) ? rewardToken.trim() : undefined,
     twitter,
     telegram,
   };
@@ -222,8 +223,8 @@ export function LaunchStudio() {
           Type it. <span className="grad-text">Launch it.</span>
         </h1>
         <p className="mt-2 max-w-xl text-sm text-zinc-600">
-          One sentence becomes a full launch package. Edit anything and deploy to o1.exchange on
-          Arc, all signed by your own wallet.
+          One sentence becomes a full launch package. Edit anything, pick a chain, and deploy to
+          Arc or Robinhood — all signed by your own wallet.
         </p>
       </div>
 
@@ -375,8 +376,39 @@ export function LaunchStudio() {
             </Reveal>
           </Step>
 
-          {/* Step 3 - deploy */}
-          <Step n="03" title="Deploy to o1.exchange" className="animate-fade-up">
+          {/* Step 3 - choose a launch */}
+          <Step n="03" title="Choose a launch" className="animate-fade-up">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {LAUNCH_TARGET_LIST.map((t) => {
+                const active = t.id === targetId;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setTargetId(t.id)}
+                    className={`rounded-xl border p-4 text-left transition ${
+                      active
+                        ? "border-rose/70 bg-rose/[0.06] shadow-glow"
+                        : "border-ink-line bg-white/60 card-hover"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-display text-base font-bold text-zinc-900">{t.label}</span>
+                      <span
+                        className={`h-4 w-4 rounded-full border-2 ${
+                          active ? "border-rose bg-rose" : "border-ink-line"
+                        }`}
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-zinc-600">{t.tagline}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </Step>
+
+          {/* Step 4 - deploy */}
+          <Step n="04" title={`Deploy to ${target.label}`} className="animate-fade-up">
             {isConnected && (
               <div className="mb-3 flex items-center justify-between rounded-xl border border-ink-line bg-white/60 px-3 py-2 text-xs">
                 <span className="text-zinc-500">Wallet balance</span>
@@ -386,7 +418,7 @@ export function LaunchStudio() {
               </div>
             )}
 
-            {quotes.length > 0 && (
+            {isArc && quotes.length > 0 && (
               <div className="mb-3">
                 <label className="mb-2 block text-sm text-zinc-700">Paired asset</label>
                 <div className="flex flex-wrap gap-2">
@@ -410,6 +442,13 @@ export function LaunchStudio() {
               </div>
             )}
 
+            {!isArc && (
+              <p className="mb-3 rounded-xl border border-ink-line bg-white/60 px-3 py-2 text-xs text-zinc-600">
+                Robinhood launches start on an ETH-denominated bonding curve and graduate to a
+                locked Uniswap v4 pool. Creator fees are paid in ETH.
+              </p>
+            )}
+
             <label className="mb-3 block text-sm text-zinc-700">
               Dev buy (optional)
               <div className="mt-1 flex items-center gap-2">
@@ -420,25 +459,27 @@ export function LaunchStudio() {
                   inputMode="decimal"
                   className="w-32 rounded-xl border border-ink-line bg-white/70 px-3 py-2 font-mono text-sm outline-none focus:border-rose/60"
                 />
-                <span className="text-xs text-zinc-500">USDC — buy your own token in the same tx</span>
+                <span className="text-xs text-zinc-500">{target.nativeSymbol} — buy your own token in the same tx</span>
               </div>
             </label>
 
-            <label className="mb-3 block text-sm text-zinc-700">
-              Paired reward token (optional)
-              <input
-                value={rewardToken}
-                onChange={(e) => setRewardToken(e.target.value.trim())}
-                placeholder="Paste any Arc token address (0x…)"
-                spellCheck={false}
-                className="mt-1 w-full rounded-xl border border-ink-line bg-white/70 px-3 py-2 font-mono text-xs outline-none focus:border-rose/60"
-              />
-              <span className="mt-1 block text-[11px] text-zinc-500">
-                Launch stays USDC-quoted; your claimed USDC creator fees buy this token. Leave blank to skip.
-              </span>
-            </label>
+            {isArc && (
+              <label className="mb-3 block text-sm text-zinc-700">
+                Paired reward token (optional)
+                <input
+                  value={rewardToken}
+                  onChange={(e) => setRewardToken(e.target.value.trim())}
+                  placeholder="Paste any Arc token address (0x…)"
+                  spellCheck={false}
+                  className="mt-1 w-full rounded-xl border border-ink-line bg-white/70 px-3 py-2 font-mono text-xs outline-none focus:border-rose/60"
+                />
+                <span className="mt-1 block text-[11px] text-zinc-500">
+                  Launch stays USDC-quoted; your claimed USDC creator fees buy this token. Leave blank to skip.
+                </span>
+              </label>
+            )}
 
-            <DeployButton input={launchInput} disabled={!name || ticker.length < 2} />
+            <DeployButton input={launchInput} target={target} disabled={!name || ticker.length < 2} />
             <a href="/feed" className="mt-3 block text-xs text-zinc-500 transition hover:text-rose">
               After deploying, find it in the live feed →
             </a>
