@@ -46,9 +46,42 @@ export const arcChain = defineChain({
 /**
  * Backwards-compatible alias. The app was originally wired to a chain exported
  * as `robinhoodChain`; it now points at Arc. Kept so the many `robinhoodChain`
- * imports keep working without a churn-heavy rename.
+ * imports keep working without a churn-heavy rename — this is the app's PRIMARY
+ * chain (Arc), used by the wallet/read layer everywhere.
  */
 export const robinhoodChain = arcChain;
+
+// ── Second launch target: the real Robinhood Chain ──────────────────────────
+// The launch studio offers two deploy targets — Arc (o1 launchpad, USDC) and
+// Robinhood (Pons bonding curve, ETH). This is the ACTUAL Robinhood Chain
+// (chain 4663, ETH), a distinct network from Arc, used only by the Robinhood
+// launch path. It is intentionally separate from `robinhoodChain` above (which
+// is the Arc alias) so the primary Arc wiring is untouched.
+const RH_DEFAULT_CHAIN_ID = 4663; // Robinhood Chain (Arbitrum Orbit L2)
+const rhParsedChainId = Number(env("NEXT_PUBLIC_RH_CHAIN_ID", String(RH_DEFAULT_CHAIN_ID)));
+const RH_CHAIN_ID =
+  Number.isInteger(rhParsedChainId) && rhParsedChainId > 0 ? rhParsedChainId : RH_DEFAULT_CHAIN_ID;
+const RH_RPC_URL = env("NEXT_PUBLIC_RH_RPC_URL", "https://rpc.mainnet.chain.robinhood.com");
+export const rhExplorerUrl = env("NEXT_PUBLIC_RH_EXPLORER_URL", "https://robinhoodchain.blockscout.com");
+
+/**
+ * Robinhood Chain — the ETH-denominated network the Pons bonding-curve
+ * launchpad runs on.
+ *  - Chain ID: 4663
+ *  - Native currency: ETH
+ *  - L2 built on Arbitrum Orbit
+ */
+export const rhLaunchChain = defineChain({
+  id: RH_CHAIN_ID,
+  name: "Robinhood Chain",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: {
+    default: { http: [RH_RPC_URL] },
+  },
+  blockExplorers: {
+    default: { name: "Blockscout", url: rhExplorerUrl },
+  },
+});
 
 export const explorerUrl = EXPLORER_URL;
 
@@ -58,4 +91,10 @@ export function explorerTx(hash: string): string {
 
 export function explorerToken(address: string): string {
   return `${explorerUrl}/token/${address}`;
+}
+
+/** Explorer tx URL for a specific chain id (Arc vs Robinhood launch targets). */
+export function explorerTxForChain(chainId: number, hash: string): string {
+  const base = chainId === rhLaunchChain.id ? rhExplorerUrl : explorerUrl;
+  return `${base}/tx/${hash}`;
 }

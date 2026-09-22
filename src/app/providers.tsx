@@ -10,7 +10,7 @@ import {
   rainbowWallet,
   walletConnectWallet,
 } from "@rainbow-me/rainbowkit/wallets";
-import { robinhoodChain } from "@/lib/chain";
+import { robinhoodChain, rhLaunchChain } from "@/lib/chain";
 
 // Wallet connect - the exact working RainbowKit + wagmi v2 setup from Verbo
 // (see WALLET_CONNECT.md). RainbowKit's modal gives MetaMask / Browser Wallet /
@@ -27,8 +27,14 @@ import { robinhoodChain } from "@/lib/chain";
 const wagmiConfig = getDefaultConfig({
   appName: "CREO",
   projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID || "creo_missing_wc_project_id",
-  chains: [robinhoodChain],
-  transports: { [robinhoodChain.id]: http() },
+  // Primary chain is Arc (robinhoodChain alias). The real Robinhood Chain is
+  // added as a second network so the studio's "Robinhood" launch target can
+  // switch to it and deploy the Pons bonding curve there.
+  chains: [robinhoodChain, rhLaunchChain],
+  transports: {
+    [robinhoodChain.id]: http(),
+    [rhLaunchChain.id]: http(),
+  },
   ssr: true,
   wallets: [
     {
