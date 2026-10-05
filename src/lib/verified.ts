@@ -4,7 +4,7 @@
  * badge cannot be spoofed by anyone launching a look-alike ticker.
  */
 const OFFICIAL_TOKENS = new Set<string>([
-  "0x1c98d896328c35a751ce18323f47139a44188001", // $CREO (official, Arc)
+  // No official tokens listed. Add an address here to grant it the check badge.
 ]);
 
 export function isVerified(address?: string | null): boolean {
